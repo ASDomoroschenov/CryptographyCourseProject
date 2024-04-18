@@ -11,8 +11,6 @@ m
 =src/main/java/ru/mai/cipher/cipher_impl/mode/cbc/CBCMode.java,b/e/be4f6bc663ff5cf17137846f863b897fd915c47b
 `
 0src/main/java/ru/mai/cipher/cipher_impl/RC5.java,e/8/e8b17548458fbfabd145066b413af74b9fe63e00
-`
-0src/main/java/ru/mai/cipher/utils/BytesUtil.java,f/7/f7d3b7d531bf87d3d0d1514ac489616c5adf2a62
 W
 'src/main/java/ru/mai/cipher/Cipher.java,7/5/75721d71af1e15a0c010b74678320644ec799d02
 m
@@ -78,12 +76,6 @@ Fsrc/main/java/ru/mai/cipher/cipher_impl/padding/impl/PKCS7Padding.java,7/f/7f7
 y
 Isrc/main/java/ru/mai/cipher/cipher_impl/padding/impl/ANSIX923Padding.java,f/7/f748cacc0d9fe4f06d6c2745f5e353b414eddf10
 Å
-Q.idea/sonarlint/securityhotspotstore/9/8/989105710a5b7e217a5e46f8963414a1405d34bb,d/1/d13b86fe4a78393692ff942a6969334e5575dfcc
-Å
-Q.idea/sonarlint/securityhotspotstore/9/c/9c873fbe01ae92a8edeef7265b0d0888f1b119ec,6/4/6473aff35826edd6da1cec33fe613b8ae62caaa8
-Å
-Q.idea/sonarlint/securityhotspotstore/2/e/2e060877bf4fc7bb0f3da626fbb2b520fa20690f,7/d/7d2443206b21e7c48dd1c239b76a646d5adcafcb
-Å
 Q.idea/sonarlint/securityhotspotstore/8/3/83b7d60b206170ad04ab53188f8d57f5d567bd46,b/0/b0bf887923de7cc29282b37b3309e00deab4e171
 y
 Isrc/main/java/ru/mai/cipher/cipher_impl/padding/impl/ISO10126Padding.java,8/f/8fed0ed7e091864f4d44140547b39eeea3d2f505
@@ -98,3 +90,7 @@ _
 :
 
 .gitignore,a/5/a5cc2925ca8258af241be7e5b0381edf30266302
+c
+3src/main/java/ru/mai/cipher/cipher_impl/LOKI97.java,d/4/d4039a06cd2117002b550155fbd140474713d2d7
+Y
+)src/main/java/ru/mai/cipher/utils/GF.java,c/5/c5c885c67e7079961212e0c1d8006219da4fb1c8

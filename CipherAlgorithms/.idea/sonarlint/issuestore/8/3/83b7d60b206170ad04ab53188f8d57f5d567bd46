@@ -1,0 +1,7 @@
+
+r	java:S1062"+Replace this use of System.out by a logger.(ãË´öøÿÿÿÿ8é· ›ï1J$3b55248e-2d40-4edc-ad3a-8980361257f4
+m	java:S1068"+Replace this use of System.out by a logger.(Â¬œ8©ò¢›ï1J$e4a15e81-3c2c-4477-9ac0-92f460264941
+|
+java:S1128"9Remove this unused import 'ru.mai.cipher.utils.BitsUtil'.(ì÷‰8ë· ›ï1J$1fb8ecd3-0f2e-4b5f-90de-b5664e1eb520
+u
+java:S1128"-Remove this unused import 'java.util.Random'.(èøÉ›ùÿÿÿÿ8ë· ›ï1J$f976e281-3d0b-475e-b89e-88569a4b8cfc

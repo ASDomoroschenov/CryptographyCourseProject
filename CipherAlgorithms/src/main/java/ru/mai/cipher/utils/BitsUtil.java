@@ -51,6 +51,30 @@ public class BitsUtil {
         return longValue;
     }
 
+    public static int convertCharToInt(char charValue) {
+        int signBit = (charValue >> (Character.SIZE - 1)) & 1;
+        int intValue = charValue & ((1 << (Character.SIZE - 1)) - 1);
+
+        if (signBit == 1) {
+            intValue |= 1 << (Character.SIZE - 1);
+        }
+
+        return intValue;
+    }
+
+    public static byte[] permutation(byte[] arrayBits, int[] permutationValues) throws IllegalArgumentException {
+        byte[] permutationResult = new byte[(permutationValues.length + Byte.SIZE - 1) / Byte.SIZE];
+
+        for (int i = 0; i < permutationValues.length; i++) {
+            int indexBlock = (Long.SIZE - permutationValues[i] - 1) / Byte.SIZE;
+            int indexBitInBlock = Byte.SIZE - permutationValues[i] % Byte.SIZE - 1;
+            byte bit = (byte) ((arrayBits[indexBlock] >> (Byte.SIZE - indexBitInBlock - 1)) & 1);
+            permutationResult[i / Byte.SIZE] |= (byte) (bit << (Byte.SIZE - (i % Byte.SIZE) - 1));
+        }
+
+        return permutationResult;
+    }
+
     public static long cyclicLeftShift(long number, int numBits, long k) {
         long valueShift = Math.abs(k % numBits);
         return (number << valueShift) | ((number & (((1L << valueShift) - 1) << (numBits - valueShift))) >>> (numBits - valueShift));
@@ -85,5 +109,52 @@ public class BitsUtil {
         }
 
         return null;
+    }
+
+    public static long addModulo(long first, long second, int numBits) {
+        long result = 0;
+        long reminder = 0;
+
+        for (int i = 0; i < numBits; i++) {
+            long tempSum = ((first >> i) & 1) ^ ((second >> i) & 1) ^ reminder;
+            reminder = (((first >> i) & 1) + ((second >> i) & 1) + reminder) >> 1;
+            result |= tempSum << i;
+        }
+
+        return result;
+    }
+
+    public static long subModulo(long first, long second, int numBits) {
+        return addModulo(first, ~second + 1, numBits);
+    }
+
+    public static long getBits(byte[] bytes, int from, int countBits) {
+        byte[] result = new byte[(countBits + Byte.SIZE - 1) / Byte.SIZE];
+
+        for (int i = 0; i < countBits; i++) {
+            if (from + i >= bytes.length * Byte.SIZE) {
+                setBitFromEnd(result, i / countBits, false);
+            } else {
+                setBitFromEnd(result, i, getBitFromEnd(bytes, from + i) == 1);
+            }
+        }
+
+        return BitsUtil.bytesToLong(result);
+    }
+
+    public static long getBits(long block, int from, int countBits) {
+        return (block << (Long.SIZE - from - 1) >>> (Long.SIZE - countBits));
+    }
+
+    public static int getBitFromEnd(byte[] bytes, int indexBit) {
+        return (bytes[indexBit / Byte.SIZE] >> (Byte.SIZE - indexBit % Byte.SIZE - 1)) & 1;
+    }
+
+    public static void setBitFromEnd(byte[] bytes, int indexBit, boolean valueBit) {
+        if (valueBit) {
+            bytes[indexBit / Byte.SIZE] |= (byte) (1 << (Byte.SIZE - indexBit % Byte.SIZE - 1));
+        } else {
+            bytes[indexBit / Byte.SIZE] &= (byte) ~(1 << (Byte.SIZE - indexBit % Byte.SIZE - 1));
+        }
     }
 }
