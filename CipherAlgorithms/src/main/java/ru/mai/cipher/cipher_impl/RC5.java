@@ -3,6 +3,7 @@ package ru.mai.cipher.cipher_impl;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import ru.mai.cipher.cipher_interface.CipherService;
+import ru.mai.cipher.utils.BitsUtil;
 
 import java.util.Map;
 
@@ -37,14 +38,14 @@ public class RC5 implements CipherService {
 
     @Override
     public byte[] encryptBlock(byte[] text) {
-        Pair<byte[], byte[]> parts = utils.splitInHalf(text);
+        Pair<byte[], byte[]> parts = BitsUtil.splitInHalf(text);
 
-        long a = utils.addModulo(utils.bytesToLong(parts.getLeft()), roundKeys[0]);
-        long b = utils.addModulo(utils.bytesToLong(parts.getRight()), roundKeys[1]);
+        long a = utils.addModulo(BitsUtil.bytesToLong(parts.getLeft()), roundKeys[0]);
+        long b = utils.addModulo(BitsUtil.bytesToLong(parts.getRight()), roundKeys[1]);
 
         for (int i = 1; i < countRounds; i++) {
-            a = utils.addModulo(utils.cyclicLeftShift((a ^ b), sizeBlockInBits / 2, b), roundKeys[2 * i]);
-            b = utils.addModulo(utils.cyclicLeftShift((a ^ b), sizeBlockInBits / 2, a), roundKeys[2 * i + 1]);
+            a = utils.addModulo(BitsUtil.cyclicLeftShift((a ^ b), sizeBlockInBits / 2, b), roundKeys[2 * i]);
+            b = utils.addModulo(BitsUtil.cyclicLeftShift((a ^ b), sizeBlockInBits / 2, a), roundKeys[2 * i + 1]);
         }
 
         return utils.collectParts(a, b, text.length);
@@ -52,13 +53,13 @@ public class RC5 implements CipherService {
 
     @Override
     public byte[] decryptBlock(byte[] text) {
-        Pair<byte[], byte[]> parts = utils.splitInHalf(text);
-        long a = utils.bytesToLong(parts.getLeft());
-        long b = utils.bytesToLong(parts.getRight());
+        Pair<byte[], byte[]> parts = BitsUtil.splitInHalf(text);
+        long a = BitsUtil.bytesToLong(parts.getLeft());
+        long b = BitsUtil.bytesToLong(parts.getRight());
 
         for (int i = countRounds - 1; i >= 1; i--) {
-            b = utils.cyclicRightShift(utils.subModulo(b, roundKeys[2 * i + 1]), sizeBlockInBits / 2, a) ^ a;
-            a = utils.cyclicRightShift(utils.subModulo(a, roundKeys[2 * i]), sizeBlockInBits / 2, b) ^ b;
+            b = BitsUtil.cyclicRightShift(utils.subModulo(b, roundKeys[2 * i + 1]), sizeBlockInBits / 2, a) ^ a;
+            a = BitsUtil.cyclicRightShift(utils.subModulo(a, roundKeys[2 * i]), sizeBlockInBits / 2, b) ^ b;
         }
 
         b = utils.subModulo(b, roundKeys[1]);
@@ -117,7 +118,7 @@ public class RC5 implements CipherService {
                 }
             }
 
-            return bytesToLong(result);
+            return BitsUtil.bytesToLong(result);
         }
 
         public int getBitFromEnd(byte[] bytes, int indexBit) {
@@ -130,28 +131,6 @@ public class RC5 implements CipherService {
             } else {
                 bytes[indexBit / Byte.SIZE] &= (byte) ~(1 << (Byte.SIZE - indexBit % Byte.SIZE - 1));
             }
-        }
-
-        public long bytesToLong(byte[] bytesValue) {
-            long result = 0L;
-
-            for (byte byteValue : bytesValue) {
-                long longValue = convertByteToLong(byteValue);
-                result = (result << Byte.SIZE) | longValue;
-            }
-
-            return result;
-        }
-
-        public long convertByteToLong(byte byteValue) {
-            int signBit = (byteValue >> (Byte.SIZE - 1)) & 1;
-            long longValue = byteValue & ((1 << (Byte.SIZE - 1)) - 1);
-
-            if (signBit == 1) {
-                longValue |= 1 << (Byte.SIZE - 1);
-            }
-
-            return longValue;
         }
 
         public long addModulo(long first, long second) {
@@ -169,26 +148,6 @@ public class RC5 implements CipherService {
 
         public long subModulo(long first, long second) {
             return addModulo(first, ~second + 1);
-        }
-
-        public long cyclicLeftShift(long number, int numBits, long k) {
-            long valueShift = Math.abs(k % numBits);
-            return (number << valueShift) | ((number & (((1L << valueShift) - 1) << (numBits - valueShift))) >>> (numBits - valueShift));
-        }
-
-        public long cyclicRightShift(long number, int numBits, long k) {
-            long valueShift = Math.abs(k % numBits);
-            return (number >>> valueShift) | ((number & ((1L << valueShift) - 1)) << (numBits - valueShift));
-        }
-
-        public Pair<byte[], byte[]> splitInHalf(byte[] bytes) {
-            byte[] leftBytes = new byte[bytes.length / 2];
-            byte[] rightBytes = new byte[bytes.length / 2];
-
-            System.arraycopy(bytes, 0, leftBytes, 0, bytes.length / 2);
-            System.arraycopy(bytes, bytes.length / 2, rightBytes, 0, bytes.length / 2);
-
-            return Pair.of(leftBytes, rightBytes);
         }
 
         public byte[] collectParts(long left, long right, int sizeResult) {
@@ -228,8 +187,8 @@ public class RC5 implements CipherService {
             long b = 0;
 
             for (int counter = 0; counter < 3 * Integer.max(countWordsSArray, countWords); counter++) {
-                a = sArray[i] = utils.cyclicLeftShift(utils.addModulo(utils.addModulo(sArray[i], a), b), sizeHalfBlockInBits, 3);
-                b = lArray[j] = utils.cyclicLeftShift(utils.addModulo(utils.addModulo(sArray[i], a), b), sizeHalfBlockInBits, utils.addModulo(a, b));
+                a = sArray[i] = BitsUtil.cyclicLeftShift(utils.addModulo(utils.addModulo(sArray[i], a), b), sizeHalfBlockInBits, 3);
+                b = lArray[j] = BitsUtil.cyclicLeftShift(utils.addModulo(utils.addModulo(sArray[i], a), b), sizeHalfBlockInBits, utils.addModulo(a, b));
                 i = (i + 1) % countWordsSArray;
                 j = (j + 1) % countWords;
             }
@@ -255,25 +214,3 @@ public class RC5 implements CipherService {
         }
     }
 }
-
-/*
-1111111111111111111111111111111111111111111111111111111111111110
-1110011101011101011001111000100001110111100101100011010101111001
-0001100010100010100110000111011110001000011010011100101010000101
-1110011101011101011001111000100001110111100101100011010101111010
-
-1010110000111001100000100010101110101111000101111000001100011001
-1010110000111001100000100010101110101111000101111000001100011010
-
-
-1001000111101001100000101001111111111111111111111111111111111111
-0110111000000001101111110010000110111110101000011001100110011011
-1111111111101000001111011011111001000001010111100110011001100100
-
-1001000111101001100000101001111111111111111111111111111111111111
-0110111000000001101111110010000110111110101000011001100110011011
-1111111111101000001111011011111001000001010111100110011001100100
-
-1101001111001111010100000011111111111101000001111011010010001111
-1111111111111111111111111111111111111100100011110100110000010100
-*/

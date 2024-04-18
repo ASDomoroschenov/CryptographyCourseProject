@@ -6,7 +6,7 @@ import ru.mai.cipher.cipher_interface.CipherMode;
 import ru.mai.cipher.cipher_interface.CipherService;
 import ru.mai.cipher.cipher_thread.text.text_impl.CollectTextImpl;
 import ru.mai.cipher.cipher_thread.text.text_impl.TextThreadCipherImpl;
-import ru.mai.cipher.utils.BytesUtil;
+import ru.mai.cipher.utils.BitsUtil;
 
 import java.util.concurrent.ExecutionException;
 
@@ -29,7 +29,7 @@ public class CFBMode implements CipherMode {
 
         for (int i = 0; i < text.length; i += textBlockSize) {
             System.arraycopy(text, i, textBlock, 0, textBlockSize);
-            byte[] cipherBlockText = BytesUtil.xor(cipherService.encryptBlock(cipherBlock), textBlock);
+            byte[] cipherBlockText = BitsUtil.xor(cipherService.encryptBlock(cipherBlock), textBlock);
             System.arraycopy(cipherBlockText, 0, result, i, textBlockSize);
             cipherBlock = cipherBlockText;
         }

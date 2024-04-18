@@ -1,6 +1,10 @@
 package ru.mai.cipher.utils;
 
-public class BytesUtil {
+import org.apache.commons.lang3.tuple.Pair;
+
+public class BitsUtil {
+    private BitsUtil() {}
+
     public static byte[] xor(byte[] first, byte[] second) {
         int maxLength = Integer.max(first.length, second.length);
         byte[] result = new byte[maxLength];
@@ -25,32 +29,36 @@ public class BytesUtil {
         return result;
     }
 
-    public static long bytesToLong(byte[] bytes) {
-        if (bytes.length > 8) {
-            throw new IllegalArgumentException("Can't convert a byte array whose length exceeds 8");
-        }
+    public static long bytesToLong(byte[] bytesValue) {
+        long result = 0L;
 
-        long result = 0;
-
-        for (byte byteItem : bytes) {
-            result <<= Byte.SIZE;
-            result |= byteItem;
+        for (byte byteValue : bytesValue) {
+            long longValue = convertByteToLong(byteValue);
+            result = (result << Byte.SIZE) | longValue;
         }
 
         return result;
     }
 
-    public static byte[] permutation(byte[] arrayBits, int[] permutationValues) throws IllegalArgumentException {
-        byte[] permutationResult = new byte[(permutationValues.length + Byte.SIZE - 1) / Byte.SIZE];
+    public static long convertByteToLong(byte byteValue) {
+        int signBit = (byteValue >> (Byte.SIZE - 1)) & 1;
+        long longValue = byteValue & ((1 << (Byte.SIZE - 1)) - 1);
 
-        for (int i = 0; i < permutationValues.length; i++) {
-            int indexBlock = (permutationValues[i] - 1) / Byte.SIZE;
-            int indexBitInBlock = permutationValues[i] - indexBlock * Byte.SIZE;
-            byte bit = (byte) ((arrayBits[indexBlock] >> (Byte.SIZE - indexBitInBlock)) & 1);
-            permutationResult[i / Byte.SIZE] |= (byte) (bit << (Byte.SIZE - (i % Byte.SIZE) - 1));
+        if (signBit == 1) {
+            longValue |= 1 << (Byte.SIZE - 1);
         }
 
-        return permutationResult;
+        return longValue;
+    }
+
+    public static long cyclicLeftShift(long number, int numBits, long k) {
+        long valueShift = Math.abs(k % numBits);
+        return (number << valueShift) | ((number & (((1L << valueShift) - 1) << (numBits - valueShift))) >>> (numBits - valueShift));
+    }
+
+    public static long cyclicRightShift(long number, int numBits, long k) {
+        long valueShift = Math.abs(k % numBits);
+        return (number >>> valueShift) | ((number & ((1L << valueShift) - 1)) << (numBits - valueShift));
     }
 
     public static byte[] mergePart(byte[] left, byte[] right) {
@@ -63,17 +71,17 @@ public class BytesUtil {
             return result;
         }
 
-        return null;
+        return new byte[0];
     }
 
-    public static byte[][] splitInHalf(byte[] bytes) {
+    public static Pair<byte[], byte[]> splitInHalf(byte[] bytes) {
         if (bytes != null) {
             byte[][] splitHalfParts = new byte[2][bytes.length / 2];
 
             System.arraycopy(bytes, 0, splitHalfParts[0], 0, bytes.length / 2);
             System.arraycopy(bytes, bytes.length / 2, splitHalfParts[1], 0, bytes.length / 2);
 
-            return splitHalfParts;
+            return Pair.of(splitHalfParts[0], splitHalfParts[1]);
         }
 
         return null;

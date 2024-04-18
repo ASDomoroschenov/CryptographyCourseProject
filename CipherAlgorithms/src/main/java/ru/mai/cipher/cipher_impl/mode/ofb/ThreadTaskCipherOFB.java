@@ -3,7 +3,7 @@ package ru.mai.cipher.cipher_impl.mode.ofb;
 import org.apache.commons.lang3.tuple.Pair;
 import ru.mai.cipher.cipher_interface.CipherService;
 import ru.mai.cipher.cipher_thread.text.text_interface.TextThreadTask;
-import ru.mai.cipher.utils.BytesUtil;
+import ru.mai.cipher.utils.BitsUtil;
 
 public class ThreadTaskCipherOFB implements TextThreadTask {
     private final byte[][] keyBlocks;
@@ -25,7 +25,7 @@ public class ThreadTaskCipherOFB implements TextThreadTask {
 
         for (int i = 0; i < countBlocks; i++) {
             System.arraycopy(text, indexBegin + i * textBlockSize, textBlock, 0, textBlockSize);
-            byte[] cipherBlockText = BytesUtil.xor(textBlock, keyBlocks[(indexBegin + i * textBlockSize) / textBlockSize]);
+            byte[] cipherBlockText = BitsUtil.xor(textBlock, keyBlocks[(indexBegin + i * textBlockSize) / textBlockSize]);
             System.arraycopy(cipherBlockText, 0, result, i * textBlockSize, textBlockSize);
         }
 

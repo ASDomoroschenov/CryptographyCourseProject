@@ -3,7 +3,7 @@ package ru.mai.cipher.cipher_impl.mode.ctr;
 import org.apache.commons.lang3.tuple.Pair;
 import ru.mai.cipher.cipher_interface.CipherService;
 import ru.mai.cipher.cipher_thread.text.text_interface.TextThreadTask;
-import ru.mai.cipher.utils.BytesUtil;
+import ru.mai.cipher.utils.BitsUtil;
 
 public class ThreadTaskCipherCTR implements TextThreadTask {
     private final CipherService cipherService;
@@ -21,9 +21,11 @@ public class ThreadTaskCipherCTR implements TextThreadTask {
     }
 
     private byte[] getNextCounter(byte[] counter) {
-        byte[][] halfParts = BytesUtil.splitInHalf(counter);
-        byte[] rightPartCounter = BytesUtil.longToBytes(BytesUtil.bytesToLong(halfParts[1]) + 1, halfParts[1].length);
-        return BytesUtil.mergePart(halfParts[0], rightPartCounter);
+        Pair<byte[], byte[]> parts = BitsUtil.splitInHalf(counter);
+        byte[] leftPart = parts.getLeft();
+        byte[] rightPart = parts.getRight();
+        byte[] rightPartCounter = BitsUtil.longToBytes(BitsUtil.bytesToLong(rightPart) + 1, rightPart.length);
+        return BitsUtil.mergePart(leftPart, rightPartCounter);
     }
 
     @Override
@@ -33,7 +35,7 @@ public class ThreadTaskCipherCTR implements TextThreadTask {
 
         for (int i = 0; i < countBlocks; i++) {
             System.arraycopy(text, indexBegin + i * textBlockSize, textBlock, 0, textBlockSize);
-            byte[] cipherBlockText = BytesUtil.xor(textBlock, cipherService.encryptBlock(counterBlocks[(indexBegin + i * textBlockSize) / textBlockSize]));
+            byte[] cipherBlockText = BitsUtil.xor(textBlock, cipherService.encryptBlock(counterBlocks[(indexBegin + i * textBlockSize) / textBlockSize]));
             System.arraycopy(cipherBlockText, 0, result, i * textBlockSize, textBlockSize);
         }
 
