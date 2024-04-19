@@ -94,3 +94,9 @@ c
 3src/main/java/ru/mai/cipher/cipher_impl/LOKI97.java,d/4/d4039a06cd2117002b550155fbd140474713d2d7
 Y
 )src/main/java/ru/mai/cipher/utils/GF.java,c/5/c5c885c67e7079961212e0c1d8006219da4fb1c8
+X
+(gradle/wrapper/gradle-wrapper.properties,f/b/fbe448ebfc3eb2d4e308f6b8b043666f5b57235e
+L
+src/main/resources/text2.txt,8/7/877881d5549d7701c3afa09a479169e873744880
+L
+src/main/resources/text1.txt,0/7/07048ab20f5478fa51fc412daaffb295c9f84543

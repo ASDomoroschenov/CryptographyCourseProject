@@ -15,19 +15,15 @@ public class OFBMode implements CipherMode {
 
     @Override
     public byte[] encrypt(byte[] text) throws IllegalArgumentException, ExecutionException, InterruptedException {
-        if (text == null || text.length == 0) {
-            throw new IllegalArgumentException("Illegal bytes text");
-        }
-
-        return new TextThreadCipherImpl(
-                cipherService.getBlockSizeInBytes(),
-                new ThreadTaskCipherOFB(cipherService, text, initialVector),
-                new CollectTextImpl()
-        ).cipher(text);
+        return cipher(text);
     }
 
     @Override
     public byte[] decrypt(byte[] text) throws IllegalArgumentException, ExecutionException, InterruptedException {
+        return cipher(text);
+    }
+
+    private byte[] cipher(byte[] text) throws ExecutionException, InterruptedException {
         if (text == null || text.length == 0) {
             throw new IllegalArgumentException("Illegal bytes text");
         }

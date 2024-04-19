@@ -54,6 +54,10 @@ public class LOKI97 implements CipherService {
     );
 
     public LOKI97(byte[] key, int sizeKeyInBits) {
+        if (!Check.checkKey(key, sizeKeyInBits)) {
+            throw new IllegalArgumentException("Invalid key");
+        }
+
         this.roundKeys = new KeyGenerator(key, sizeKeyInBits, SIZE_BLOCK_IN_BYTES).getKeys();
     }
 
@@ -69,9 +73,10 @@ public class LOKI97 implements CipherService {
         long rightPart = BitsUtil.bytesToLong(parts.getRight());
 
         for (int i = 1; i <= 16; i++) {
-            long tmpRightPart = rightPart;
-            rightPart = leftPart ^ LOKI97Utils.f(BitsUtil.addModulo(rightPart, roundKeys[3 * i - 2], Long.SIZE), roundKeys[3 * i - 1]);
-            leftPart = BitsUtil.addModulo(BitsUtil.addModulo(tmpRightPart, roundKeys[3 * i - 2], Long.SIZE), roundKeys[3 * i], Long.SIZE);
+            long prevRight = rightPart;
+            long prevLeft = leftPart;
+            rightPart = prevLeft ^ LOKI97Utils.f(BitsUtil.addModulo(prevRight, roundKeys[3 * i - 2], Long.SIZE), roundKeys[3 * i - 1]);
+            leftPart = BitsUtil.addModulo(BitsUtil.addModulo(prevRight, roundKeys[3 * i - 2], Long.SIZE), roundKeys[3 * i], Long.SIZE);
         }
 
         return BitsUtil.mergePart(BitsUtil.longToBytes(rightPart, Byte.SIZE), BitsUtil.longToBytes(leftPart, Byte.SIZE));
@@ -83,13 +88,14 @@ public class LOKI97 implements CipherService {
         long rightPart = BitsUtil.bytesToLong(parts.getLeft());
         long leftPart = BitsUtil.bytesToLong(parts.getRight());
 
-        for (int i = 1; i <= 16; i++) {
-            long tempLeftPart = leftPart;
-            leftPart = rightPart ^ LOKI97Utils.f(BitsUtil.subModulo(leftPart, roundKeys[3 * i], Long.SIZE), roundKeys[3 * i - 1]);
-            rightPart = BitsUtil.subModulo(BitsUtil.subModulo(tempLeftPart, roundKeys[3 * i], Long.SIZE), roundKeys[3 * i - 2], Long.SIZE);
+        for (int i = 16; i >= 1; i--) {
+            long nextRight = rightPart;
+            long nextLeft = leftPart;
+            leftPart = nextRight ^ LOKI97Utils.f(BitsUtil.subModulo(nextLeft, roundKeys[3 * i], Long.SIZE), roundKeys[3 * i - 1]);
+            rightPart = BitsUtil.subModulo(BitsUtil.subModulo(nextLeft, roundKeys[3 * i], Long.SIZE), roundKeys[3 * i - 2], Long.SIZE);
         }
 
-        return BitsUtil.mergePart(BitsUtil.longToBytes(rightPart, Byte.SIZE), BitsUtil.longToBytes(leftPart, Byte.SIZE));
+        return BitsUtil.mergePart(BitsUtil.longToBytes(leftPart, Byte.SIZE), BitsUtil.longToBytes(rightPart, Byte.SIZE));
     }
 
     @AllArgsConstructor
@@ -226,6 +232,18 @@ public class LOKI97 implements CipherService {
             }
 
             return result;
+        }
+    }
+
+    static class Check {
+        private Check() {}
+
+        private static boolean checkSizeKeyInBits(int sizeKeyInBits) {
+            return sizeKeyInBits == 128 || sizeKeyInBits == 192 || sizeKeyInBits == 256;
+        }
+
+        public static boolean checkKey(byte[] key, int sizeKeyInBits) {
+            return checkSizeKeyInBits(sizeKeyInBits) && (key.length * 8 == sizeKeyInBits);
         }
     }
 }
