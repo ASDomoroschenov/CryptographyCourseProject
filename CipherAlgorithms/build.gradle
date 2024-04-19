@@ -21,7 +21,6 @@ dependencies {
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
     implementation 'commons-io:commons-io:2.16.1'
 
-    implementation 'org.jooq:joou:0.9.4'
 
     // test
     testImplementation platform('org.junit:junit-bom:5.9.1')
