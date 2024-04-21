@@ -8,5 +8,3 @@ public class Main {
 
     }
 }
-
-//10000
