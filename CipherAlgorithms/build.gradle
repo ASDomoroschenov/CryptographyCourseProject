@@ -10,6 +10,9 @@ repositories {
 }
 
 dependencies {
+    // kafka
+    implementation 'org.apache.kafka:kafka-clients:3.4.0'
+
     // logging
     implementation 'ch.qos.logback:logback-classic:1.4.14'
 
@@ -17,10 +20,16 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.26'
     annotationProcessor 'org.projectlombok:lombok:1.18.26'
 
+    // configuration
+    implementation 'com.typesafe:config:1.4.2'
+
+    // json
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.14.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.0.1'
+
     // apache-commons
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
     implementation 'commons-io:commons-io:2.16.1'
-
 
     // test
     testImplementation platform('org.junit:junit-bom:5.9.1')
