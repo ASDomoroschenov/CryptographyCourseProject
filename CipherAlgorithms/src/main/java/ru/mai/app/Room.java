@@ -1,13 +1,15 @@
 package ru.mai.app;
 
 import com.typesafe.config.Config;
-import ru.mai.app.app_impl.user.Alice;
-import ru.mai.app.app_impl.user.Bob;
+import lombok.extern.slf4j.Slf4j;
+import ru.mai.app.app_impl.user.User;
 import ru.mai.app.model.Message;
+import ru.mai.diffie_hellman.DiffieHellman;
 
+import java.math.BigInteger;
+
+@Slf4j
 public class Room {
-    private static final byte[] key = {1, 2, 3, 4, 5, 6, 7, 8};
-    private static final byte[] initializationVector = {1, 2, 3, 4, 5, 6, 7, 8};
     private final long aliceId;
     private final long bobId;
     private final Config appConfig;
@@ -23,11 +25,15 @@ public class Room {
     }
 
     public void start() {
-        Alice alice = new Alice(aliceId, appConfig, configAlice, key, initializationVector);
-        Bob bob = new Bob(bobId, appConfig, configBob, key, initializationVector);
+        BigInteger[] parameters = DiffieHellman.generateParameters(300);
+        User alice = new User(aliceId, appConfig, configAlice, parameters);
+        User bob = new User(bobId, appConfig, configBob, parameters);
 
         alice.sendMessage(new Message("message", "text", "Hello bob!".getBytes()));
         bob.sendMessage(new Message("message", "text", "Hello Alice!".getBytes()));
+
+        log.info("Alice id = {}", alice.getUserId());
+        log.info("Bob id = {}", bob.getUserId());
 
         bob.processing();
         alice.processing();

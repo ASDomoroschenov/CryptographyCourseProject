@@ -6,15 +6,13 @@ import ru.mai.app.app_impl.KafkaConfigBuilderImpl;
 import ru.mai.app.app_interface.KafkaConfigBuilder;
 
 public class Server {
-    private static long countRooms = 0;
+    private static long countRooms = 38;
     private static final Config appConfig = new ConfigReaderImpl().loadConfig();
     private static final KafkaConfigBuilder configBuilder = new KafkaConfigBuilderImpl();
 
     private Server() {}
 
     public static void startRoom() {
-        countRooms++;
-
         Config configAlice = configBuilder.build(
                 "input_alice_" + countRooms,
                 "input_bob_" + countRooms,

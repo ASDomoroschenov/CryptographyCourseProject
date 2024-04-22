@@ -13,11 +13,15 @@ import lombok.extern.slf4j.Slf4j;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Message {
+public class CipherInfoMessage {
     private static final ObjectMapper mapper = new ObjectMapper();
     private String typeMessage;
-    private String typeFormat;
-    private byte[] bytes;
+    private String nameAlgorithm;
+    private String namePadding;
+    private String encryptionMode;
+    private int sizeKeyIbBits;
+    private int sizeBlockInBits;
+    private byte[] publicKey;
 
     public byte[] toBytes() {
         try {

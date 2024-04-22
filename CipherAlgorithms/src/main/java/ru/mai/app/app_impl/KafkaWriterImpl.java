@@ -6,9 +6,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import ru.mai.app.app_interface.KafkaWriter;
-import ru.mai.cipher.Cipher;
 
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -18,9 +16,8 @@ import java.util.concurrent.Executors;
 public class KafkaWriterImpl implements KafkaWriter {
     private final Config kafkaUserConfig;
     private final KafkaProducer<byte[], byte[]> kafkaProducer;
-    private final Cipher cipher;
 
-    public KafkaWriterImpl(Config appConfig, Config kafkaUserConfig, Cipher cipher) {
+    public KafkaWriterImpl(Config appConfig, Config kafkaUserConfig) {
         this.kafkaUserConfig = kafkaUserConfig;
         this.kafkaProducer = new KafkaProducer<>(
                 Map.of(
@@ -30,7 +27,6 @@ public class KafkaWriterImpl implements KafkaWriter {
                 new ByteArraySerializer(),
                 new ByteArraySerializer()
         );
-        this.cipher = cipher;
     }
 
     @Override
