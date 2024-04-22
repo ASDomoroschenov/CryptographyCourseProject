@@ -8,6 +8,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import ru.mai.app.app_impl.user.User;
 import ru.mai.app.app_interface.KafkaReader;
@@ -48,9 +49,12 @@ public class KafkaReaderImpl implements KafkaReader {
                 new ByteArrayDeserializer(),
                 new ByteArrayDeserializer()
         );
-        kafkaConsumer.subscribe(Collections.singletonList(kafkaUserConfig.getString("kafka.topic.input")));
         this.modulo = keyParameters[0];
         this.privateKey = keyParameters[1];
+
+        TopicPartition partition = new TopicPartition(kafkaUserConfig.getString("kafka.topic.input"), 0);
+        kafkaConsumer.assign(Collections.singletonList(partition));
+        kafkaConsumer.seek(partition, getLastOffset(kafkaConsumer, partition));
     }
 
     @Override
@@ -79,7 +83,7 @@ public class KafkaReaderImpl implements KafkaReader {
                                 Message message = parseMessage(test);
 
                                 if (message != null && message.getBytes() != null) {
-                                    log.info(new String(message.getBytes()));
+                                    log.info("User {} get message: {}", user.getUserId(),  new String(message.getBytes()));
                                 }
                             }
                         }
@@ -184,5 +188,11 @@ public class KafkaReaderImpl implements KafkaReader {
             case "RD" -> Cipher.EncryptionMode.RD;
             default -> throw new IllegalStateException(UNEXPECTED_VALUE + encryptionMode);
         };
+    }
+
+    private static long getLastOffset(KafkaConsumer<byte[], byte[]> consumer, TopicPartition partition) {
+        consumer.seekToEnd(Collections.singletonList(partition));
+        long lastOffset = consumer.position(partition);
+        return Math.max(0, lastOffset - 1);
     }
 }
