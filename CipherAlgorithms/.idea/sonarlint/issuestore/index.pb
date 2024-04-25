@@ -128,7 +128,7 @@ $src/main/java/ru/mai/app/Server.java,7/1/7154243c3fa0362632be04d8255f0dfad9bfd
 +src/main/java/ru/mai/app/model/Message.java,0/c/0cc571fc41d6a90d9d4bfeec11e9f3a4cd807182
 e
 5src/main/java/ru/mai/app/model/CipherInfoMessage.java,6/2/623ff29706abe550d3fed77b5d6b11184404e561
-v
-Fsrc/main/java/ru/mai/app/model/serializer/JSONByteArraySerializer.java,0/9/094994d58eb41ad15a2e32ae54fc2da22f071a5f
 `
 0src/main/java/ru/mai/app/app_impl/user/User.java,4/7/4764845e1feef12c5a3053f7ac5d3dbc0e0d7130
+X
+(src/main/java/ru/mai/JavaCipherMain.java,a/d/ad1f6ec1993cff87148f793c46f6ee67aa93b89b

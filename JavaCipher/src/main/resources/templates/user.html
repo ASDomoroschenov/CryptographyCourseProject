@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <style>
+        .chat-container {
+            width: 400px;
+            margin: 0 auto;
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+        }
+        .message-container {
+            margin-bottom: 10px;
+        }
+        .message-container .sender {
+            font-weight: bold;
+        }
+        .message-container .message {
+            margin-left: 20px;
+        }
+        input[type="text"] {
+            width: calc(100% - 70px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        input[type="submit"] {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div class="chat-container">
+    <div class="message-container" id="message-container">
+        <p th:text="${receivedMessage}"></p>
+    </div>
+    <form id="message-form" method="POST">
+        <input type="text" id="message-input" name = "message" placeholder="Введите сообщение">
+        <input type="submit" value="Отправить">
+    </form>
+</div>
+</body>
+</html>

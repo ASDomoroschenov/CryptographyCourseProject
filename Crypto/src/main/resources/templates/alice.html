@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat</title>
+  <style>
+    .chat-container {
+      width: 400px;
+      margin: 0 auto;
+      border: 1px solid #ccc;
+      padding: 20px;
+      border-radius: 5px;
+      font-family: Arial, sans-serif;
+    }
+    .message-container {
+      margin-bottom: 10px;
+    }
+    .message-container .sender {
+      font-weight: bold;
+    }
+    .message-container .message {
+      margin-left: 20px;
+    }
+    input[type="text"] {
+      width: calc(100% - 70px);
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin-right: 10px;
+    }
+    input[type="submit"] {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <script>
+    const currentUrl = window.location.href;
+    const parts = currentUrl.split('/');
+    const roomId = parts[4];
+    var socket = new SockJS('/ws');
+    var stompClient = Stomp.over(socket);
+
+    stompClient.connect({}, function (frame) {
+      console.log('Connected: ' + frame);
+      stompClient.subscribe('/topic/room/' + roomId + '/alice', function (message) {
+        var messageElement = document.createElement('div');
+        messageElement.className = 'message-container';
+
+        var textNode = document.createTextNode("Вам: " + message.body);
+        messageElement.appendChild(textNode);
+
+        var messageContainer = document.getElementById('message-container');
+        messageContainer.appendChild(messageElement);
+      });
+    });
+
+    function disconnect() {
+      if (stompClient !== null) {
+        stompClient.disconnect();
+      }
+      console.log("Disconnected");
+    }
+
+    function sendMessage() {
+      var messageInput = document.getElementById('message-input').value;
+      var xhr = new XMLHttpRequest();
+      var url = '/room/' + roomId + '/alice';
+      xhr.open('POST', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+      xhr.onload = function () {
+        if (xhr.status === 200) {
+          console.log('Message sent successfully');
+          document.getElementById('message-input').value = '';
+          var sentMessageElement = document.createElement('div');
+          sentMessageElement.className = 'message-container';
+          var sentMessageTextNode = document.createTextNode('Вы: ' + messageInput);
+          sentMessageElement.appendChild(sentMessageTextNode);
+          var messageContainer = document.getElementById('message-container');
+          messageContainer.appendChild(sentMessageElement);
+        } else {
+          console.error('Request failed: ' + xhr.status);
+        }
+      };
+
+      // Отправка запроса
+      xhr.send('message=' + encodeURIComponent(messageInput));
+    }
+
+    function disconnect() {
+      if (stompClient !== null) {
+        stompClient.disconnect();
+      }
+      console.log('Disconnected');
+    }
+  </script>
+</head>
+<body>
+<div class="chat-container">
+  <div class="message-container" id="message-container">
+    <p th:text="${receivedMessage}"></p>
+  </div>
+  <form id="message-form" onsubmit="event.preventDefault(); sendMessage();">
+    <input type="text" id="message-input" name = "message" placeholder="Введите сообщение">
+    <input type="submit" value="Отправить">
+  </form>
+</div>
+</body>
+</html>

@@ -10,6 +10,19 @@ repositories {
 }
 
 dependencies {
+    //spring boot
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    //spring boot thymeleaf template
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf:3.0.5'
+
+    //open api, swagger
+    implementation group: 'org.springdoc', name: 'springdoc-openapi-starter-webmvc-ui', version: '2.0.2'
+    implementation 'io.swagger:swagger-models:1.6.10'
+
+    //spring validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation:3.0.5'
+
     // kafka
     implementation 'org.apache.kafka:kafka-clients:3.4.0'
 
