@@ -1,4 +1,4 @@
-package ru.mai.crypto.room;
+package ru.mai.crypto.app;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
@@ -13,7 +13,6 @@ import ru.mai.crypto.room.view.RoomClientView;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -22,8 +21,6 @@ import java.util.concurrent.Executors;
 public class ServerRoom {
     private static final ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     private static final KafkaWriter kafkaWriter = new KafkaWriterImpl();
-    private static final Random random = new Random();
-    private static final Map<Integer, RoomClient> chatUsers = new HashMap<>();
     private static final Map<Integer, Pair<RoomClient, RoomClient>> roomUsers = new HashMap<>();
     private static final Map<Integer, BigInteger[]> roomsParameter = new HashMap<>();
     private final Server server;
@@ -33,15 +30,21 @@ public class ServerRoom {
     }
 
     public RoomClient connect(String name, int roomId, RoomClientView userView) {
-        int userId = generateUserId();
         BigInteger[] parameters;
         RoomClient roomClient;
         String outputTopic;
         String inputTopic = topicName(name, roomId);
 
         if (roomsParameter.containsKey(roomId)) {
+            Pair<RoomClient, RoomClient> users = roomUsers.get(roomId);
             parameters = roomsParameter.get(roomId);
-            RoomClient anotherRoomClient = roomUsers.get(roomId).getLeft();
+            RoomClient anotherRoomClient;
+
+            if (users.getLeft() == null) {
+                anotherRoomClient = users.getRight();
+            } else {
+                anotherRoomClient = users.getLeft();
+            }
 
             outputTopic = topicName(anotherRoomClient.getName(), roomId);
 
@@ -60,15 +63,16 @@ public class ServerRoom {
         }
 
         roomClient = new RoomClient(
+                this,
+                roomId,
                 name,
-                userId,
                 outputTopic,
                 inputTopic,
                 kafkaWriter,
                 parameters,
                 userView
         );
-        
+
         server.addRoomClient(name, roomClient);
 
         if (roomUsers.containsKey(roomId)) {
@@ -79,19 +83,7 @@ public class ServerRoom {
             roomUsers.put(roomId, Pair.of(roomClient, null));
         }
 
-        chatUsers.put(userId, roomClient);
-
         return roomClient;
-    }
-
-    private int generateUserId() {
-        int userId;
-
-        do {
-            userId = random.nextInt(Integer.MAX_VALUE);
-        } while (chatUsers.containsKey(userId));
-
-        return userId;
     }
 
     private String topicName(String name, int roomId) {
@@ -104,5 +96,20 @@ public class ServerRoom {
 
         alice.sendCipherInfo();
         bob.sendCipherInfo();
+    }
+
+    public void leaveRoom(RoomClient roomClient) {
+        Pair<RoomClient, RoomClient> users = roomUsers.get(roomClient.getRoomId());
+
+        if (users.getLeft() == null || users.getRight() == null) {
+            roomUsers.remove(roomClient.getRoomId());
+            roomsParameter.remove(roomClient.getRoomId());
+        } else if (users.getLeft() != null && users.getRight() != null) {
+            if (users.getLeft() == roomClient) {
+                roomUsers.put(roomClient.getRoomId(), Pair.of(null, users.getRight()));
+            } else {
+                roomUsers.put(roomClient.getRoomId(), Pair.of(users.getLeft(), null));
+            }
+        }
     }
 }

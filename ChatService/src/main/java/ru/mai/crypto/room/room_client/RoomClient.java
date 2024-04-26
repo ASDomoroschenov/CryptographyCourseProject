@@ -5,6 +5,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import ru.mai.crypto.cipher.Cipher;
+import ru.mai.crypto.app.ServerRoom;
 import ru.mai.crypto.room.kafka.KafkaReader;
 import ru.mai.crypto.room.kafka.KafkaWriter;
 import ru.mai.crypto.room.kafka.impl.KafkaReaderImpl;
@@ -25,9 +26,7 @@ import java.util.concurrent.Executors;
 public class RoomClient {
     private static final ExecutorService service = Executors.newSingleThreadExecutor();
     private static final Random random = new Random();
-    private int id;
     private String name;
-    private int roomClientId;
     private String outputTopic;
     private String inputTopic;
     private KafkaWriter kafkaWriter;
@@ -39,10 +38,13 @@ public class RoomClient {
     private KafkaReader kafkaReader;
     private VerticalLayout messageLayout;
     private UI ui;
+    private ServerRoom serverRoom;
+    private int roomId;
 
-    public RoomClient(String name, int roomClientId, String outputTopic, String inputTopic, KafkaWriter kafkaWriter, BigInteger[] parameters, RoomClientView userView) {
+    public RoomClient(ServerRoom serverRoom, int roomId, String name, String outputTopic, String inputTopic, KafkaWriter kafkaWriter, BigInteger[] parameters, RoomClientView userView) {
+        this.serverRoom = serverRoom;
+        this.roomId = roomId;
         this.name = name;
-        this.roomClientId = roomClientId;
         this.outputTopic = outputTopic;
         this.inputTopic = inputTopic;
         this.kafkaWriter = kafkaWriter;
@@ -97,5 +99,10 @@ public class RoomClient {
 
     public void processing() {
         kafkaReader.processing(inputTopic);
+    }
+
+    public void leaveRoom() {
+        service.submit(() -> kafkaReader.close());
+        serverRoom.leaveRoom(this);
     }
 }

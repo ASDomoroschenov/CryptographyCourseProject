@@ -9,7 +9,7 @@ import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.WildcardParameter;
 import lombok.extern.slf4j.Slf4j;
-import ru.mai.crypto.room.ServerRoom;
+import ru.mai.crypto.app.ServerRoom;
 import ru.mai.crypto.room.room_client.RoomClient;
 import ru.mai.crypto.room.view.RoomClientView;
 

@@ -41,7 +41,7 @@ public class KafkaReaderImpl implements KafkaReader {
         this.kafkaConsumer = new KafkaConsumer<>(
                 Map.of(
                         ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9093",
-                        ConsumerConfig.GROUP_ID_CONFIG, "group_" + roomClient.getRoomClientId(),
+                        ConsumerConfig.GROUP_ID_CONFIG, "group_" + roomClient.getName() + "_" + roomClient.getRoomId(),
                         ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
                 ),
                 new ByteArrayDeserializer(),
