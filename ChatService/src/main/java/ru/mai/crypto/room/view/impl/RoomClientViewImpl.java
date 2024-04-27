@@ -176,7 +176,7 @@ public class RoomClientViewImpl extends VerticalLayout implements HasUrlParamete
                 .set("border", "1px dashed #4A90E2")
                 .set("border-radius", "5px")
                 .set("padding", "10px")
-                .set("overflow-y", "scroll");
+                .set("overflow-y", "auto");
 
         layout.setWidth("620px");
         layout.setHeight("500px");

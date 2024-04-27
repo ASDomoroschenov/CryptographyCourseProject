@@ -41,12 +41,6 @@ public class CipherInfoParser {
                 cipherInfo.getSizeBlockInBits()
         );
 
-        if (cipherInfo.getNameAlgorithm().equals("LOKI97")) {
-            log.info(Arrays.toString(key));
-            log.info(String.valueOf(cipherInfo.getSizeBlockInBits()));
-            log.info(Arrays.toString(cipherInfo.getInitializationVector()));
-        }
-
         return new Cipher(
                 initializationVector,
                 cipherService,

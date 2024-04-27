@@ -4,8 +4,8 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import ru.mai.crypto.cipher.Cipher;
 import ru.mai.crypto.app.ServerRoom;
+import ru.mai.crypto.cipher.Cipher;
 import ru.mai.crypto.cipher.cipher_interface.CipherService;
 import ru.mai.crypto.room.kafka.KafkaReader;
 import ru.mai.crypto.room.kafka.KafkaWriter;
@@ -66,7 +66,6 @@ public class RoomClient {
     public boolean sendMessage(Message message) {
         try {
             if (anotherPublicKey != null) {
-                log.info("Encrypted message with algorithm {}: {}", cipherInfo.getNameAlgorithm(), new String(cipher.encrypt(message.toBytes())));
                 kafkaWriter.processing(cipher.encrypt(message.toBytes()), outputTopic);
                 return true;
             } else {
@@ -94,12 +93,6 @@ public class RoomClient {
                 cipherInfo.getSizeKeyInBits(),
                 cipherInfo.getSizeBlockInBits()
         );
-
-        if (cipherInfo.getNameAlgorithm().equals("LOKI97")) {
-            log.info(Arrays.toString(key));
-            log.info(String.valueOf(cipherInfo.getSizeBlockInBits()));
-            log.info(Arrays.toString(cipherInfo.getInitializationVector()));
-        }
 
         cipher = new Cipher(
                 initializationVector,

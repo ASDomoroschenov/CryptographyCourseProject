@@ -18,65 +18,64 @@ public interface RoomClientView {
         String format = getTypeFormat(fileName);
 
         if (fileData != null && fileData.length > 0) {
-            if (format.equals("image")) {
-                Div imageDiv = new Div();
+            boolean isSend = user.sendMessage(new Message("message", format, fileName, fileData));
 
-                StreamResource resource = new StreamResource(fileName, () -> new ByteArrayInputStream(fileData));
-                Image image = new Image(resource, "Uploaded image");
+            if (isSend) {
+                if (format.equals("image")) {
+                    Div imageDiv = new Div();
 
-                imageDiv.add(image);
+                    StreamResource resource = new StreamResource(fileName, () -> new ByteArrayInputStream(fileData));
+                    Image image = new Image(resource, "Uploaded image");
 
-                imageDiv.getStyle()
-                        .set("margin-left", "auto")
-                        .set("overflow", "hidden")
-                        .set("padding", "10px")
-                        .set("border-radius", "5px")
-                        .set("background-color", "#cceeff")
-                        .set("border", "1px solid #ddd")
-                        .set("resize", "none")
-                        .set("min-width", "40%")
-                        .set("object-fit", "contain");
+                    imageDiv.add(image);
 
-                image.getStyle()
-                        .set("width", "100%")
-                        .set("height", "100%")
-                        .set("object-fit", "contain");
+                    imageDiv.getStyle()
+                            .set("margin-left", "auto")
+                            .set("overflow", "hidden")
+                            .set("padding", "10px")
+                            .set("border-radius", "5px")
+                            .set("background-color", "#cceeff")
+                            .set("border", "1px solid #ddd")
+                            .set("width", "60%")
+                            .set("flex-shrink", "0");
 
-                messagesLayout.add(imageDiv);
+                    image.getStyle()
+                            .set("width", "100%")
+                            .set("height", "100%");
 
+                    messagesLayout.add(imageDiv);
 
+                    messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
+                } else {
+                    Div fileDiv = new Div();
+                    StreamResource resource = new StreamResource(fileName, () -> new ByteArrayInputStream(fileData));
 
-                messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
-            } else {
-                Div fileDiv = new Div();
-                StreamResource resource = new StreamResource(fileName, () -> new ByteArrayInputStream(fileData));
+                    Anchor downloadLink = new Anchor(resource, "");
+                    downloadLink.getElement().setAttribute("download", true);
 
-                Anchor downloadLink = new Anchor(resource, "");
-                downloadLink.getElement().setAttribute("download", true);
+                    Button downloadButton = new Button(fileName, event -> downloadLink.getElement().callJsFunction("click"));
 
-                Button downloadButton = new Button(fileName, event -> {
-                    downloadLink.getElement().callJsFunction("click");
-                });
+                    fileDiv.add(downloadButton, downloadLink);
 
-                fileDiv.add(downloadButton, downloadLink);
+                    fileDiv.getStyle()
+                            .set("margin-left", "auto")
+                            .set("display", "inline-block")
+                            .set("max-width", "80%")
+                            .set("overflow", "hidden")
+                            .set("padding", "10px")
+                            .set("border-radius", "5px")
+                            .set("background-color", "#cceeff")
+                            .set("border", "1px solid #ddd")
+                            .set("flex-shrink", "0");
 
-                fileDiv.getStyle()
-                        .set("margin-left", "auto")
-                        .set("display", "inline-block")
-                        .set("max-width", "80%")
-                        .set("overflow", "hidden")
-                        .set("padding", "10px")
-                        .set("border-radius", "5px")
-                        .set("background-color", "#cceeff")
-                        .set("border", "1px solid #ddd");
+                    messagesLayout.add(fileDiv);
+                    messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
+                }
 
-                messagesLayout.add(fileDiv);
-                messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
+                return true;
             }
 
-            user.sendMessage(new Message("message", format, fileName, fileData));
-
-            return true;
+            return false;
         }
 
         return false;
@@ -151,17 +150,19 @@ public interface RoomClientView {
 
                 imageDiv.add(image);
 
-                imageDiv.getStyle().set("display", "inline-block");
-                imageDiv.getStyle().set("overflow", "hidden");
-                imageDiv.getStyle().set("padding", "10px");
-                imageDiv.getStyle().set("border-radius", "5px");
-                imageDiv.getStyle().set("background-color", "#f2f2f2");
-                imageDiv.getStyle().set("border", "1px solid #ddd");
+                imageDiv.getStyle()
+                        .set("margin-right", "auto")
+                        .set("overflow", "hidden")
+                        .set("padding", "10px")
+                        .set("border-radius", "5px")
+                        .set("background-color", "#f2f2f2")
+                        .set("border", "1px solid #ddd")
+                        .set("width", "60%")
+                        .set("flex-shrink", "0");
 
-                image.getStyle().set("width", "300px");
-                image.getStyle().set("height", "auto");
-                image.getStyle().set("min-width", "300px");
-                image.getStyle().set("min-height", "auto");
+                image.getStyle()
+                        .set("width", "100%")
+                        .set("height", "100%");
 
                 messagesLayout.add(imageDiv);
 
@@ -182,9 +183,7 @@ public interface RoomClientView {
                 Anchor downloadLink = new Anchor(resource, "");
                 downloadLink.getElement().setAttribute("download", true);
 
-                Button downloadButton = new Button(message.getFileName(), event -> {
-                    downloadLink.getElement().callJsFunction("click");
-                });
+                Button downloadButton = new Button(message.getFileName(), event -> downloadLink.getElement().callJsFunction("click"));
 
                 downloadLink.add(downloadButton);
 
@@ -197,7 +196,8 @@ public interface RoomClientView {
                         .set("padding", "10px")
                         .set("border-radius", "5px")
                         .set("background-color", "#f2f2f2")
-                        .set("border", "1px solid #ddd");
+                        .set("border", "1px solid #ddd")
+                        .set("flex-shrink", "0");
 
                 messagesLayout.add(fileDiv);
             }
