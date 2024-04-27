@@ -17,6 +17,7 @@ public class Message {
     private static final ObjectMapper mapper = new ObjectMapper();
     private String typeMessage;
     private String typeFormat;
+    private String fileName;
     private byte[] bytes;
 
     public byte[] toBytes() {

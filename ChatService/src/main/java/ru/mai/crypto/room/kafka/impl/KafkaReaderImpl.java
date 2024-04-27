@@ -71,11 +71,20 @@ public class KafkaReaderImpl implements KafkaReader {
                         isRunning = false;
                     } else {
                         if (cipher != null) {
+                            log.info(new String(cipher.decrypt(consumerRecord.value())));
                             Message message = parseMessage(new String(cipher.decrypt(consumerRecord.value())));
 
                             if (message != null && message.getBytes() != null) {
-                                CompletableFuture.runAsync(() -> roomClient.showMessage(message));
-                                log.info("roomClient {} get message: {}", roomClient.getName(), new String(message.getBytes()));
+                                if (message.getTypeFormat().equals("text")) {
+                                    CompletableFuture.runAsync(() -> roomClient.showMessage(message));
+                                    log.info("roomClient {} get message: {}", roomClient.getName(), new String(message.getBytes()));
+                                } else if (message.getTypeFormat().equals("image")) {
+                                    log.info("roomClient {} get image", roomClient.getName());
+                                    CompletableFuture.runAsync(() -> roomClient.showImage(message));
+                                } else {
+                                    log.info("roomClient {} get file", roomClient.getName());
+                                    CompletableFuture.runAsync(() -> roomClient.showFile(message));
+                                }
                             }
                         }
                     }
@@ -117,13 +126,13 @@ public class KafkaReaderImpl implements KafkaReader {
     }
 
     private Cipher getCipher(CipherInfoMessage cipherInfo) {
-        byte[] key = getKey(cipherInfo.getPublicKey(), cipherInfo.getSizeKeyIbBits());
+        byte[] key = getKey(cipherInfo.getPublicKey(), cipherInfo.getSizeKeyInBits());
         byte[] initializationVector = generateInitializationVector(cipherInfo.getSizeBlockInBits());
 
         CipherService cipherService = getCipherService(
                 cipherInfo.getNameAlgorithm(),
                 key,
-                cipherInfo.getSizeKeyIbBits(),
+                cipherInfo.getSizeKeyInBits(),
                 cipherInfo.getSizeBlockInBits()
         );
 

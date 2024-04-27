@@ -39,9 +39,11 @@ public class RoomClient {
     private VerticalLayout messageLayout;
     private UI ui;
     private ServerRoom serverRoom;
+    private CipherInfoMessage cipherInfo;
     private int roomId;
 
-    public RoomClient(ServerRoom serverRoom, int roomId, String name, String outputTopic, String inputTopic, KafkaWriter kafkaWriter, BigInteger[] parameters, RoomClientView userView) {
+    public RoomClient(CipherInfoMessage cipherInfo, ServerRoom serverRoom, int roomId, String name, String outputTopic, String inputTopic, KafkaWriter kafkaWriter, BigInteger[] parameters, RoomClientView userView) {
+        this.cipherInfo = cipherInfo;
         this.serverRoom = serverRoom;
         this.roomId = roomId;
         this.name = name;
@@ -55,12 +57,15 @@ public class RoomClient {
         this.kafkaReader = new KafkaReaderImpl(this, parameters);
     }
 
-    public void sendMessage(Message message) {
+    public boolean sendMessage(Message message) {
         try {
-            while (cipher == null) {
-                Thread.onSpinWait();
+            if (cipher != null) {
+                log.info("Encrypted message with algorithm {}: {}", cipherInfo.getNameAlgorithm(), new String(cipher.encrypt(message.toBytes())));
+                kafkaWriter.processing(cipher.encrypt(message.toBytes()), outputTopic);
+                return true;
+            } else {
+                return false;
             }
-            kafkaWriter.processing(cipher.encrypt(message.toBytes()), outputTopic);
         } catch (InterruptedException ex) {
             log.error(ex.getMessage());
             log.error(Arrays.deepToString(ex.getStackTrace()));
@@ -69,20 +74,14 @@ public class RoomClient {
             log.error(ex.getMessage());
             log.error(Arrays.deepToString(ex.getStackTrace()));
         }
+
+        return false;
     }
 
     public void sendCipherInfo() {
-        CipherInfoMessage cipherMessage = CipherInfoMessage.builder()
-                .typeMessage("cipherInfo")
-                .nameAlgorithm("RC5")
-                .namePadding("ANSIX923")
-                .encryptionMode("ECB")
-                .sizeKeyIbBits(64)
-                .sizeBlockInBits(64)
-                .publicKey(publicKey.toByteArray())
-                .build();
+        cipherInfo.setPublicKey(publicKey.toByteArray());
         log.info("Send cipher info to {}", outputTopic);
-        kafkaWriter.processing(cipherMessage.toBytes(), outputTopic);
+        kafkaWriter.processing(cipherInfo.toBytes(), outputTopic);
     }
 
     public BigInteger generatePrivateKey() {
@@ -95,6 +94,14 @@ public class RoomClient {
 
     public void showMessage(Message message) {
         CompletableFuture.runAsync(() -> userView.showMessage(ui, message, messageLayout));
+    }
+
+    public void showImage(Message message) {
+        CompletableFuture.runAsync(() -> userView.showImage(ui, message, messageLayout));
+    }
+
+    public void showFile(Message message) {
+        CompletableFuture.runAsync(() -> userView.showFile(ui, message, messageLayout));
     }
 
     public void processing() {

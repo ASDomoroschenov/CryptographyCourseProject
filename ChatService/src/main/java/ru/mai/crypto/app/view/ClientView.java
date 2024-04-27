@@ -11,27 +11,25 @@ import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.Route;
 import lombok.extern.slf4j.Slf4j;
 import ru.mai.crypto.app.Server;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import ru.mai.crypto.app.ServerRoom;
 
 @Slf4j
 @Route("")
 public class ClientView extends VerticalLayout implements HasUrlParameter<String> {
     private String nameClient;
     private final TextField roomIdField;
-    private final Map<String, List<UI>> openWindows = new HashMap<>();
     private final Server server;
+    private final ServerRoom serverRoom;
+
 
     @Override
     public void setParameter(BeforeEvent event, String parameter) {
         this.nameClient = parameter;
     }
 
-    public ClientView(Server server) {
+    public ClientView(Server server, ServerRoom serverRoom) {
         this.server = server;
+        this.serverRoom = serverRoom;
 
         log.info("ClientView start");
         HorizontalLayout startChatLayout = new HorizontalLayout();
@@ -57,10 +55,17 @@ public class ClientView extends VerticalLayout implements HasUrlParameter<String
         String url = "room/" + nameClient + "/" + roomId;
         UI ui = UI.getCurrent();
 
-        ui.getPage().executeJs("window.open($0, '_blank')", url);
-        openWindows.computeIfAbsent(url, k -> new ArrayList<>()).add(ui);
-
-        addChatInfoBlock(roomId);
+        if (serverRoom.canConnect(nameClient, Integer.parseInt(roomId))) {
+            if (!serverRoom.isOpenWindow(url)) {
+                ui.getPage().executeJs("window.open($0, '_blank')", url);
+                serverRoom.addWindow(url);
+                addChatInfoBlock(roomId);
+            } else {
+                Notification.show("Ошибка: чат уже открыт");
+            }
+        } else {
+            Notification.show("Ошибка подключения: комната уже занята");
+        }
     }
 
     private void addChatInfoBlock(String roomId) {
@@ -74,7 +79,12 @@ public class ClientView extends VerticalLayout implements HasUrlParameter<String
 
         String url = "room/" + nameClient + "/" + roomId;
         Button chatInfoButton = new Button("Комната: " + roomId,
-                e -> UI.getCurrent().getPage().executeJs("window.open($0, '_blank')", url));
+                e -> {
+            if (!serverRoom.isOpenWindow(url)) {
+                UI.getCurrent().getPage().executeJs("window.open($0, '_blank')", url);
+                serverRoom.addWindow(url);
+            }
+        });
         chatInfoButton.setWidth("500px");
 
         Button leaveChatButton = getLeaveChatButton(roomId, chatInfoLayout);

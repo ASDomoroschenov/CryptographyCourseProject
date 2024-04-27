@@ -19,7 +19,7 @@ public class CipherInfoMessage {
     private String nameAlgorithm;
     private String namePadding;
     private String encryptionMode;
-    private int sizeKeyIbBits;
+    private int sizeKeyInBits;
     private int sizeBlockInBits;
     private byte[] publicKey;
 

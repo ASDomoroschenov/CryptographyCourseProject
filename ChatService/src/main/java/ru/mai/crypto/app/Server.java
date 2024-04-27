@@ -2,6 +2,7 @@ package ru.mai.crypto.app;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.mai.crypto.room.model.CipherInfoMessage;
 import ru.mai.crypto.room.room_client.RoomClient;
 
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import java.util.Map;
 @Service
 public class Server {
     private static final Map<String, List<RoomClient>> clients = new HashMap<>();
+    private static final Map<String, CipherInfoMessage> cipherInfoClients = new HashMap<>();
 
     public boolean createClient(String name) {
         if (clients.containsKey(name)) {
@@ -51,6 +53,42 @@ public class Server {
             }
         }
 
-        log.error("Такой комнаты не существует");
+        log.error("There is no such room");
+    }
+
+    public void addCipherInfo(String name, String nameAlgorithm) {
+        switch (nameAlgorithm) {
+            case "LOKI97" -> cipherInfoClients.put(name, createLOKI());
+            case "RC5" -> cipherInfoClients.put(name, createRC5());
+            default -> throw new IllegalStateException("Unexpected value: " + nameAlgorithm);
+        }
+    }
+
+    public CipherInfoMessage getCipherInfo(String nameClient) {
+        return cipherInfoClients.get(nameClient);
+    }
+
+    public CipherInfoMessage createLOKI() {
+        return CipherInfoMessage.builder()
+                .typeMessage("cipherInfo")
+                .nameAlgorithm("LOKI97")
+                .namePadding("ANSIX923")
+                .encryptionMode("ECB")
+                .sizeKeyInBits(128)
+                .sizeBlockInBits(128)
+                .publicKey(null)
+                .build();
+    }
+
+    public CipherInfoMessage createRC5() {
+        return CipherInfoMessage.builder()
+                .typeMessage("cipherInfo")
+                .nameAlgorithm("RC5")
+                .namePadding("ANSIX923")
+                .encryptionMode("ECB")
+                .sizeKeyInBits(64)
+                .sizeBlockInBits(64)
+                .publicKey(null)
+                .build();
     }
 }

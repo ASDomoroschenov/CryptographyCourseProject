@@ -3,7 +3,6 @@ package ru.mai.crypto.app;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
-import ru.mai.crypto.app.Server;
 import ru.mai.crypto.diffie_hellman.DiffieHellman;
 import ru.mai.crypto.room.kafka.KafkaWriter;
 import ru.mai.crypto.room.kafka.impl.KafkaWriterImpl;
@@ -12,7 +11,9 @@ import ru.mai.crypto.room.view.RoomClientView;
 
 import java.math.BigInteger;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -23,6 +24,7 @@ public class ServerRoom {
     private static final KafkaWriter kafkaWriter = new KafkaWriterImpl();
     private static final Map<Integer, Pair<RoomClient, RoomClient>> roomUsers = new HashMap<>();
     private static final Map<Integer, BigInteger[]> roomsParameter = new HashMap<>();
+    private static final Set<String> openWindows = new HashSet<>();
     private final Server server;
 
     public ServerRoom(Server server) {
@@ -63,6 +65,7 @@ public class ServerRoom {
         }
 
         roomClient = new RoomClient(
+                server.getCipherInfo(name),
                 this,
                 roomId,
                 name,
@@ -86,6 +89,36 @@ public class ServerRoom {
         return roomClient;
     }
 
+    public boolean isOpenWindow(String url) {
+        return openWindows.contains(url);
+    }
+
+    public void addWindow(String url) {
+        openWindows.add(url);
+    }
+
+    public void removeWindow(String url) {
+        openWindows.remove(url);
+    }
+
+    public boolean canConnect(String name, int roomId) {
+        if (roomUsers.containsKey(roomId)) {
+            Pair<RoomClient, RoomClient> users = roomUsers.get(roomId);
+
+            if (users.getLeft() == null || users.getRight() == null) {
+                if (users.getLeft() != null) {
+                    return !users.getLeft().getName().equals(name);
+                } else {
+                    return !users.getRight().getName().equals(name);
+                }
+            } else {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private String topicName(String name, int roomId) {
         return "input_" + name + "_" + roomId;
     }
@@ -101,14 +134,16 @@ public class ServerRoom {
     public void leaveRoom(RoomClient roomClient) {
         Pair<RoomClient, RoomClient> users = roomUsers.get(roomClient.getRoomId());
 
-        if (users.getLeft() == null || users.getRight() == null) {
-            roomUsers.remove(roomClient.getRoomId());
-            roomsParameter.remove(roomClient.getRoomId());
-        } else if (users.getLeft() != null && users.getRight() != null) {
-            if (users.getLeft() == roomClient) {
-                roomUsers.put(roomClient.getRoomId(), Pair.of(null, users.getRight()));
-            } else {
-                roomUsers.put(roomClient.getRoomId(), Pair.of(users.getLeft(), null));
+        if (users != null) {
+            if (users.getLeft() == null || users.getRight() == null) {
+                roomUsers.remove(roomClient.getRoomId());
+                roomsParameter.remove(roomClient.getRoomId());
+            } else if (users.getLeft() != null && users.getRight() != null) {
+                if (users.getLeft() == roomClient) {
+                    roomUsers.put(roomClient.getRoomId(), Pair.of(null, users.getRight()));
+                } else {
+                    roomUsers.put(roomClient.getRoomId(), Pair.of(users.getLeft(), null));
+                }
             }
         }
     }
