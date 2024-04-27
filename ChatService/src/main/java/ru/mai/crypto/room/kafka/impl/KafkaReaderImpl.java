@@ -69,7 +69,6 @@ public class KafkaReaderImpl implements KafkaReader {
                         isRunning = false;
                     } else {
                         if (cipher != null) {
-                            log.info(new String(cipher.decrypt(consumerRecord.value())));
                             Message message = MessageParser.parseMessage(new String(cipher.decrypt(consumerRecord.value())));
 
                             if (message != null && message.getBytes() != null) {

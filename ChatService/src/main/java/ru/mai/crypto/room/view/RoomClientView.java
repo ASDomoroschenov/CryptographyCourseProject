@@ -44,7 +44,6 @@ public interface RoomClientView {
                             .set("height", "100%");
 
                     messagesLayout.add(imageDiv);
-
                     messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
                 } else {
                     Div fileDiv = new Div();
@@ -200,6 +199,7 @@ public interface RoomClientView {
                         .set("flex-shrink", "0");
 
                 messagesLayout.add(fileDiv);
+                messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
             }
         });
     }
