@@ -9,10 +9,9 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import ru.mai.crypto.cipher.Cipher;
-import ru.mai.crypto.cipher.cipher_impl.LOKI97;
-import ru.mai.crypto.cipher.cipher_impl.RC5;
-import ru.mai.crypto.cipher.cipher_interface.CipherService;
 import ru.mai.crypto.room.kafka.KafkaReader;
+import ru.mai.crypto.room.model.parser.CipherInfoParser;
+import ru.mai.crypto.room.model.parser.MessageParser;
 import ru.mai.crypto.room.room_client.RoomClient;
 import ru.mai.crypto.room.model.CipherInfoMessage;
 import ru.mai.crypto.room.model.Message;
@@ -22,13 +21,10 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 public class KafkaReaderImpl implements KafkaReader {
-    private static final String UNEXPECTED_VALUE = "Unexpected value: ";
-    private static final Random RANDOM = new Random();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private final KafkaConsumer<byte[], byte[]> kafkaConsumer;
     private final BigInteger privateKey;
@@ -36,7 +32,7 @@ public class KafkaReaderImpl implements KafkaReader {
     private volatile boolean isRunning = true;
     private final RoomClient roomClient;
 
-    public KafkaReaderImpl(RoomClient roomClient, BigInteger[] keyParameters) {
+    public KafkaReaderImpl(RoomClient roomClient, BigInteger privateKey, BigInteger modulo) {
         this.roomClient = roomClient;
         this.kafkaConsumer = new KafkaConsumer<>(
                 Map.of(
@@ -47,8 +43,8 @@ public class KafkaReaderImpl implements KafkaReader {
                 new ByteArrayDeserializer(),
                 new ByteArrayDeserializer()
         );
-        this.modulo = keyParameters[0];
-        this.privateKey = keyParameters[1];
+        this.privateKey = privateKey;
+        this.modulo = modulo;
     }
 
     @Override
@@ -64,15 +60,17 @@ public class KafkaReaderImpl implements KafkaReader {
                     String jsonMessage = new String(consumerRecord.value());
 
                     if (jsonMessage.contains("cipherInfo")) {
-                        cipher = parseCipherInfoMessage(jsonMessage);
-                        roomClient.setCipher(cipher);
+                        CipherInfoMessage cipherInfo = OBJECT_MAPPER.readValue(jsonMessage, CipherInfoMessage.class);
+                        cipher = CipherInfoParser.parseCipherInfoMessage(jsonMessage, privateKey, modulo);
                         log.info("Get cipher info to {}", roomClient.getName());
+                        roomClient.setAnotherKey(cipherInfo.getPublicKey());
+                        log.info(cipherInfo.toString());
                     } else if (jsonMessage.contains("exit")) {
                         isRunning = false;
                     } else {
                         if (cipher != null) {
                             log.info(new String(cipher.decrypt(consumerRecord.value())));
-                            Message message = parseMessage(new String(cipher.decrypt(consumerRecord.value())));
+                            Message message = MessageParser.parseMessage(new String(cipher.decrypt(consumerRecord.value())));
 
                             if (message != null && message.getBytes() != null) {
                                 if (message.getTypeFormat().equals("text")) {
@@ -101,96 +99,6 @@ public class KafkaReaderImpl implements KafkaReader {
 
         log.info("End kafka reader roomClient");
         kafkaConsumer.close();
-    }
-
-    private Message parseMessage(String message) {
-        try {
-            return OBJECT_MAPPER.readValue(message, Message.class);
-        } catch (JsonProcessingException ex) {
-            log.error("Error while parsing json string");
-            log.error(Arrays.deepToString(ex.getStackTrace()));
-        }
-
-        return null;
-    }
-
-    private Cipher parseCipherInfoMessage(String message) {
-        try {
-            return getCipher(OBJECT_MAPPER.readValue(message, CipherInfoMessage.class));
-        } catch (JsonProcessingException ex) {
-            log.error("Error while parsing json string");
-            log.error(Arrays.deepToString(ex.getStackTrace()));
-        }
-
-        return null;
-    }
-
-    private Cipher getCipher(CipherInfoMessage cipherInfo) {
-        byte[] key = getKey(cipherInfo.getPublicKey(), cipherInfo.getSizeKeyInBits());
-        byte[] initializationVector = generateInitializationVector(cipherInfo.getSizeBlockInBits());
-
-        CipherService cipherService = getCipherService(
-                cipherInfo.getNameAlgorithm(),
-                key,
-                cipherInfo.getSizeKeyInBits(),
-                cipherInfo.getSizeBlockInBits()
-        );
-
-        return new Cipher(
-                initializationVector,
-                cipherService,
-                getPadding(cipherInfo.getNamePadding()),
-                getEncryptionMode(cipherInfo.getEncryptionMode())
-        );
-    }
-
-    private byte[] getKey(byte[] publicKey, int sizeKeyInBits) {
-        BigInteger publicKeyNumber = new BigInteger(publicKey);
-        BigInteger key = publicKeyNumber.modPow(privateKey, modulo);
-        byte[] keyBytes = key.toByteArray();
-        byte[] result = new byte[sizeKeyInBits / Byte.SIZE];
-        System.arraycopy(keyBytes, 0, result, 0, sizeKeyInBits / Byte.SIZE);
-        return result;
-    }
-
-    private byte[] generateInitializationVector(int sizeBlockInBits) {
-        byte[] initializationVector = new byte[sizeBlockInBits / Byte.SIZE];
-
-        for (int i = 0; i < initializationVector.length; i++) {
-            initializationVector[i] = (byte) RANDOM.nextInt(128);
-        }
-
-        return initializationVector;
-    }
-
-    private CipherService getCipherService(String nameAlgorithm, byte[] key, int sizeKeyInBits, int sizeBlockInBits) {
-        return switch (nameAlgorithm) {
-            case "LOKI97" -> new LOKI97(key, sizeKeyInBits);
-            case "RC5" -> new RC5(sizeKeyInBits, sizeBlockInBits, 16, key);
-            default -> throw new IllegalStateException(UNEXPECTED_VALUE + nameAlgorithm);
-        };
-    }
-
-    private Cipher.PaddingMode getPadding(String namePadding) {
-        return switch (namePadding) {
-            case "ANSIX923" -> Cipher.PaddingMode.ANSIX923;
-            case "ISO10126" -> Cipher.PaddingMode.ISO10126;
-            case "PKCS7" -> Cipher.PaddingMode.PKCS7;
-            default -> throw new IllegalStateException(UNEXPECTED_VALUE + namePadding);
-        };
-    }
-
-    private Cipher.EncryptionMode getEncryptionMode(String encryptionMode) {
-        return switch (encryptionMode) {
-            case "CBC" -> Cipher.EncryptionMode.CBC;
-            case "CFB" -> Cipher.EncryptionMode.CFB;
-            case "CTR" -> Cipher.EncryptionMode.CTR;
-            case "ECB" -> Cipher.EncryptionMode.ECB;
-            case "OFB" -> Cipher.EncryptionMode.OFB;
-            case "PCBC" -> Cipher.EncryptionMode.PCBC;
-            case "RD" -> Cipher.EncryptionMode.RD;
-            default -> throw new IllegalStateException(UNEXPECTED_VALUE + encryptionMode);
-        };
     }
 
     public void close() {

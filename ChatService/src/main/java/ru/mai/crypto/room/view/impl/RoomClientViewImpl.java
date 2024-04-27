@@ -5,6 +5,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -170,10 +171,12 @@ public class RoomClientViewImpl extends VerticalLayout implements HasUrlParamete
         VerticalLayout layout = new VerticalLayout();
 
         layout.getStyle()
+                .set("max-width", "620px")
+                .set("max-height", "500px")
                 .set("border", "1px dashed #4A90E2")
                 .set("border-radius", "5px")
                 .set("padding", "10px")
-                .set("overflow-y", "auto");
+                .set("overflow-y", "scroll");
 
         layout.setWidth("620px");
         layout.setHeight("500px");

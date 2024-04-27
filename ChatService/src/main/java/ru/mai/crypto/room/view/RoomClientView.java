@@ -24,25 +24,28 @@ public interface RoomClientView {
                 StreamResource resource = new StreamResource(fileName, () -> new ByteArrayInputStream(fileData));
                 Image image = new Image(resource, "Uploaded image");
 
-                image.setWidth("50%");
-                image.setHeight("50%");
-
                 imageDiv.add(image);
 
                 imageDiv.getStyle()
                         .set("margin-left", "auto")
-                        .set("display", "inline-block")
-                        .set("max-width", "80%")
                         .set("overflow", "hidden")
                         .set("padding", "10px")
                         .set("border-radius", "5px")
                         .set("background-color", "#cceeff")
-                        .set("border", "1px solid #ddd");
+                        .set("border", "1px solid #ddd")
+                        .set("resize", "none")
+                        .set("min-width", "40%")
+                        .set("object-fit", "contain");
 
-                image.getStyle().set("width", "100%");
-                image.getStyle().set("height", "100%");
+                image.getStyle()
+                        .set("width", "100%")
+                        .set("height", "100%")
+                        .set("object-fit", "contain");
 
                 messagesLayout.add(imageDiv);
+
+
+
                 messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
             } else {
                 Div fileDiv = new Div();
@@ -83,7 +86,7 @@ public interface RoomClientView {
         int lastDotIndex = fileName.lastIndexOf('.');
         String extension = fileName.substring(lastDotIndex + 1);
 
-        if (extension.equals(".jpg") || extension.equals("png") || extension.equals("jpeg")) {
+        if (extension.equals("jpg") || extension.equals("png") || extension.equals("jpeg")) {
             return "image";
         }
 
@@ -144,25 +147,25 @@ public interface RoomClientView {
                 StreamResource resource = new StreamResource("image.png", () -> new ByteArrayInputStream(bytesImage));
                 Image image = new Image(resource, "Uploaded image");
 
-                image.setWidth("50%");
-                image.setHeight("50%");
-
                 Div imageDiv = new Div();
 
                 imageDiv.add(image);
 
                 imageDiv.getStyle().set("display", "inline-block");
-                imageDiv.getStyle().set("max-width", "80%");
                 imageDiv.getStyle().set("overflow", "hidden");
                 imageDiv.getStyle().set("padding", "10px");
                 imageDiv.getStyle().set("border-radius", "5px");
                 imageDiv.getStyle().set("background-color", "#f2f2f2");
                 imageDiv.getStyle().set("border", "1px solid #ddd");
 
-                image.getStyle().set("width", "100%");
-                image.getStyle().set("height", "100%");
+                image.getStyle().set("width", "300px");
+                image.getStyle().set("height", "auto");
+                image.getStyle().set("min-width", "300px");
+                image.getStyle().set("min-height", "auto");
 
                 messagesLayout.add(imageDiv);
+
+                messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
             }
         });
     }

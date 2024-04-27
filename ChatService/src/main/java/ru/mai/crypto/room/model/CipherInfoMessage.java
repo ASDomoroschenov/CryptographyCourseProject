@@ -21,6 +21,7 @@ public class CipherInfoMessage {
     private String encryptionMode;
     private int sizeKeyInBits;
     private int sizeBlockInBits;
+    private byte[] initializationVector;
     private byte[] publicKey;
 
     public byte[] toBytes() {
