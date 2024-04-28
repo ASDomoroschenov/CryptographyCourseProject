@@ -12,7 +12,6 @@ import ru.mai.crypto.app.model.ClientRoomInfo;
 import ru.mai.crypto.cipher.Cipher;
 import ru.mai.crypto.cipher.cipher_interface.CipherService;
 import ru.mai.crypto.diffie_hellman.DiffieHellman;
-import ru.mai.crypto.room.kafka.ConfigReader;
 import ru.mai.crypto.room.kafka.KafkaWriter;
 import ru.mai.crypto.room.kafka.impl.ConfigReaderImpl;
 import ru.mai.crypto.room.kafka.impl.KafkaReaderImpl;
@@ -84,10 +83,12 @@ public class Server {
                 }
 
                 rooms.remove(room);
+
+                serverClients.get(name).getActiveRoom().remove(roomId);
+
+                return;
             }
         }
-
-        serverClients.get(name).getActiveRoom().remove(roomId);
     }
 
     public Cipher buildCipher(String nameClient, byte[] publicKey, BigInteger privateKey, BigInteger modulo) {
@@ -129,9 +130,8 @@ public class Server {
 
     public void saveMessage(String name, String roomId, Message message, String from) {
         try {
-            String jsonMessage = from + "_" + roomId + ": " + OBJECT_MAPPER.writeValueAsString(message) + System.lineSeparator()    ;
+            String jsonMessage = from + "_" + roomId + ": " + OBJECT_MAPPER.writeValueAsString(message) + System.lineSeparator();
             jedisPooled.append(name, jsonMessage);
-            log.info("save message");
         } catch (JsonProcessingException ex) {
             log.error("Error while parsing message");
             log.error(ex.getMessage());

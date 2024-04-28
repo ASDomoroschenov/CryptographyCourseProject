@@ -25,7 +25,7 @@ import java.util.concurrent.Executors;
 @Slf4j
 @Builder
 public class RoomClient {
-    private static final String received = "received";
+    private static final String RECEIVED = "received";
     private static final ExecutorService service = Executors.newSingleThreadExecutor();
     private static final Random random = new Random();
     private String name;
@@ -89,17 +89,22 @@ public class RoomClient {
 
     public void showMessage(Message message) {
         CompletableFuture.runAsync(() -> userView.showMessage(ui, message, messageLayout));
-        server.saveMessage(name, String.valueOf(roomId), message, received);
+        server.saveMessage(name, String.valueOf(roomId), message, RECEIVED);
     }
 
     public void showImage(Message message) {
         CompletableFuture.runAsync(() -> userView.showImage(ui, message, messageLayout));
-        server.saveMessage(name, String.valueOf(roomId), message, received);
+        server.saveMessage(name, String.valueOf(roomId), message, RECEIVED);
     }
 
     public void showFile(Message message) {
         CompletableFuture.runAsync(() -> userView.showFile(ui, message, messageLayout));
-        server.saveMessage(name, String.valueOf(roomId), message, received);
+        server.saveMessage(name, String.valueOf(roomId), message, RECEIVED);
+    }
+
+    public void clearMessages() {
+        cipher = null;
+        CompletableFuture.runAsync(() -> userView.clearMessages(ui, messageLayout));
     }
 
     public void processing() {
@@ -108,7 +113,7 @@ public class RoomClient {
 
     public void leaveRoom() {
         isRunning = false;
+        kafkaWriter.processing(new Message("disconnect", null, null, 0, null).toBytes(), outputTopic);
         service.submit(() -> kafkaReader.close());
-        serverRoom.disconnect(name, roomId);
     }
 }

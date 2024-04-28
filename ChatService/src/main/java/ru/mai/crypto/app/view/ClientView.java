@@ -10,7 +10,6 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.Route;
 import lombok.extern.slf4j.Slf4j;
-import ru.mai.crypto.app.Server;
 import ru.mai.crypto.app.ServerRoom;
 
 @Slf4j
@@ -18,7 +17,6 @@ import ru.mai.crypto.app.ServerRoom;
 public class ClientView extends VerticalLayout implements HasUrlParameter<String> {
     private String nameClient;
     private final TextField roomIdField;
-    private final Server server;
     private final ServerRoom serverRoom;
 
 
@@ -27,8 +25,7 @@ public class ClientView extends VerticalLayout implements HasUrlParameter<String
         this.nameClient = parameter;
     }
 
-    public ClientView(Server server, ServerRoom serverRoom) {
-        this.server = server;
+    public ClientView(ServerRoom serverRoom) {
         this.serverRoom = serverRoom;
 
         log.info("ClientView start");
@@ -78,13 +75,20 @@ public class ClientView extends VerticalLayout implements HasUrlParameter<String
         chatInfoLayout.getStyle().set("border-radius", "5px");
 
         String url = "room/" + nameClient + "/" + roomId;
+
         Button chatInfoButton = new Button("Комната: " + roomId,
                 e -> {
-            if (serverRoom.isNotOpenWindow(url)) {
-                UI.getCurrent().getPage().executeJs("window.open($0, '_blank')", url);
-                serverRoom.addWindow(url);
-            }
-        });
+                    if (serverRoom.isNotOpenWindow(url) && serverRoom.canConnect(nameClient, Integer.parseInt(roomId))) {
+                        UI.getCurrent().getPage().executeJs("window.open($0, '_blank')", url);
+                        serverRoom.addWindow(url);
+                    } else {
+                        if (!serverRoom.isNotOpenWindow(url)) {
+                            Notification.show("Ошибка подключения: вы уже находитесь в комнате");
+                        } else {
+                            Notification.show("Ошибка подключения: комната уже занята");
+                        }
+                    }
+                });
         chatInfoButton.setWidth("500px");
 
         Button leaveChatButton = getLeaveChatButton(roomId, chatInfoLayout);
@@ -95,8 +99,7 @@ public class ClientView extends VerticalLayout implements HasUrlParameter<String
 
     private Button getLeaveChatButton(String roomId, HorizontalLayout chatInfoLayout) {
         Button leaveChatButton = new Button("Покинуть", e -> {
-            int id = Integer.parseInt(roomId);
-            serverRoom.disconnect(nameClient, id);
+            serverRoom.disconnect(nameClient, Integer.parseInt(roomId));
             removeChatInfoBlock(chatInfoLayout);
         });
 

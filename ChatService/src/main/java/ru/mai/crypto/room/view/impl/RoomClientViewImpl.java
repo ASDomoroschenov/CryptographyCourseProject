@@ -1,12 +1,10 @@
 package ru.mai.crypto.room.view.impl;
 
-import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
-import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -18,8 +16,8 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.WildcardParameter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
-import ru.mai.crypto.app.Server;
 import ru.mai.crypto.app.ServerRoom;
+import ru.mai.crypto.room.model.Message;
 import ru.mai.crypto.room.room_client.RoomClient;
 import ru.mai.crypto.room.view.RoomClientView;
 
@@ -34,7 +32,6 @@ import java.util.List;
 @Route("room")
 public class RoomClientViewImpl extends VerticalLayout implements HasUrlParameter<String>, RoomClientView {
     private final ServerRoom serverRoom;
-    private final Server server;
     private RoomClient roomClient;
     private final TextField messageField;
     private final VerticalLayout messagesLayout;
@@ -54,12 +51,12 @@ public class RoomClientViewImpl extends VerticalLayout implements HasUrlParamete
     protected void onDetach(DetachEvent detachEvent) {
         serverRoom.removeWindow("room/" + roomClient.getName() + "/" + roomClient.getRoomId());
         serverRoom.disconnect(roomClient.getName(), roomClient.getRoomId());
+        roomClient.sendMessage(new Message("disconnect", null, null, 0, null));
         super.onDetach(detachEvent);
     }
 
-    public RoomClientViewImpl(ServerRoom serverRoom, Server server) {
+    public RoomClientViewImpl(ServerRoom serverRoom) {
         this.serverRoom = serverRoom;
-        this.server = server;
 
         setAlignItems(Alignment.CENTER);
 
@@ -160,7 +157,6 @@ public class RoomClientViewImpl extends VerticalLayout implements HasUrlParamete
 
         upload.addSucceededListener(event -> {
             String fileName = event.getFileName();
-            System.out.println(multiFileMemoryBuffer.getInputStream(fileName) == null);
             filesData.add(Pair.of(fileName, multiFileMemoryBuffer.getInputStream(fileName)));
         });
 

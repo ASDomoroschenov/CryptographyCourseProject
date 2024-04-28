@@ -44,14 +44,7 @@ public interface RoomClientView {
                             .set("width", "100%")
                             .set("height", "100%");
 
-                    messagesLayout.add(imageDiv);
-                    messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
-
-                    imageDiv.addClickListener(event -> {
-                        int indexMessage = messagesLayout.indexOf(imageDiv);
-                        messagesLayout.remove(imageDiv);
-                        user.sendDeleteMessage(new Message("delete_message", "text", null, indexMessage, null));
-                    });
+                    setPossibilityToDelete(messagesLayout, user, imageDiv);
                 } else {
                     Div fileDiv = new Div();
                     StreamResource resource = new StreamResource(fileName, () -> new ByteArrayInputStream(fileData));
@@ -74,14 +67,7 @@ public interface RoomClientView {
                             .set("border", "1px solid #ddd")
                             .set("flex-shrink", "0");
 
-                    messagesLayout.add(fileDiv);
-                    messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
-
-                    fileDiv.addClickListener(event -> {
-                        int indexMessage = messagesLayout.indexOf(fileDiv);
-                        messagesLayout.remove(fileDiv);
-                        user.sendDeleteMessage(new Message("delete_message", "text", null, indexMessage, null));
-                    });
+                    setPossibilityToDelete(messagesLayout, user, fileDiv);
                 }
 
                 return true;
@@ -91,6 +77,17 @@ public interface RoomClientView {
         }
 
         return false;
+    }
+
+    private void setPossibilityToDelete(VerticalLayout messagesLayout, RoomClient user, Div fileDiv) {
+        messagesLayout.add(fileDiv);
+        messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
+
+        fileDiv.addClickListener(event -> {
+            int indexMessage = messagesLayout.indexOf(fileDiv);
+            messagesLayout.remove(fileDiv);
+            user.sendDeleteMessage(new Message("delete_message", "text", null, indexMessage, null));
+        });
     }
 
     default String getTypeFormat(String fileName) {
@@ -119,14 +116,7 @@ public interface RoomClientView {
                 messageDiv.getStyle().set("background-color", "#cceeff");
                 messageDiv.getStyle().set("border", "1px solid #4A90E2");
 
-                messagesLayout.add(messageDiv);
-                messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
-
-                messageDiv.addClickListener(event -> {
-                    int indexMessage = messagesLayout.indexOf(messageDiv);
-                    messagesLayout.remove(messageDiv);
-                    user.sendDeleteMessage(new Message("delete_message", "text", null, indexMessage, null));
-                });
+                setPossibilityToDelete(messagesLayout, user, messageDiv);
 
                 messageField.clear();
 
@@ -228,5 +218,9 @@ public interface RoomClientView {
             Component componentToRemove = messagesLayout.getComponentAt(index);
             messagesLayout.remove(componentToRemove);
         });
+    }
+
+    default void clearMessages(UI ui, VerticalLayout messagesLayout) {
+        ui.access(messagesLayout::removeAll);
     }
 }

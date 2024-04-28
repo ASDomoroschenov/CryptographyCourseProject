@@ -27,6 +27,7 @@ public class ServerRoom {
 
     public RoomClient connect(String name, int roomId, RoomClientView userView) {
         if (canConnect(name, roomId)) {
+            log.info("Connect");
             RoomClient roomClient = server.connectToRoom(name, roomId, userView);
             roomClient.setServerRoom(this);
 
@@ -57,8 +58,10 @@ public class ServerRoom {
             if (room.getLeft() == null || room.getRight() == null) {
                 if (room.getLeft() != null) {
                     return !room.getLeft().getName().equals(name);
-                } else {
+                } else if (room.getRight() != null) {
                     return !room.getRight().getName().equals(name);
+                } else {
+                    return true;
                 }
             } else {
                 return false;
@@ -72,14 +75,18 @@ public class ServerRoom {
         Pair<RoomClient, RoomClient> room = roomClients.get(roomId);
 
         if (room != null) {
-            if (room.getLeft() == null || room.getRight() == null) {
+            if (room.getLeft() != null && room.getLeft().getName().equals(name)) {
+                room.getLeft().leaveRoom();
+                roomClients.put(roomId, Pair.of(null, room.getRight()));
+            } else if (room.getRight() != null && room.getRight().getName().equals(name)) {
+                room.getRight().leaveRoom();
+                roomClients.put(roomId, Pair.of(room.getLeft(), null));
+            }
+
+            Pair<RoomClient, RoomClient> newRoomInfo = roomClients.get(roomId);
+
+            if (newRoomInfo.getLeft() == null && newRoomInfo.getRight() == null) {
                 roomClients.remove(roomId);
-            } else {
-                if (room.getLeft().getName().equals(name)) {
-                    roomClients.put(roomId, Pair.of(null, room.getRight()));
-                } else {
-                    roomClients.put(roomId, Pair.of(room.getLeft(), null));
-                }
             }
         }
 
