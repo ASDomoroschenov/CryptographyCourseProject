@@ -67,6 +67,10 @@ public class KafkaReaderImpl implements KafkaReader {
                         log.info(cipherInfo.toString());
                     } else if (jsonMessage.contains("exit")) {
                         isRunning = false;
+                    } else if (jsonMessage.contains("delete_message")) {
+                        Message deleteMessage = OBJECT_MAPPER.readValue(jsonMessage, Message.class);
+                        roomClient.deleteMessage(deleteMessage.getIndexMessage());
+                        log.info("delete message");
                     } else {
                         if (cipher != null) {
                             Message message = MessageParser.parseMessage(new String(cipher.decrypt(consumerRecord.value())));

@@ -1,5 +1,6 @@
 package ru.mai.crypto.room.view;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Anchor;
@@ -18,7 +19,7 @@ public interface RoomClientView {
         String format = getTypeFormat(fileName);
 
         if (fileData != null && fileData.length > 0) {
-            boolean isSend = user.sendMessage(new Message("message", format, fileName, fileData));
+            boolean isSend = user.sendMessage(new Message("message", format, fileName, 0, fileData));
 
             if (isSend) {
                 if (format.equals("image")) {
@@ -45,6 +46,12 @@ public interface RoomClientView {
 
                     messagesLayout.add(imageDiv);
                     messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
+
+                    imageDiv.addClickListener(event -> {
+                        int indexMessage = messagesLayout.indexOf(imageDiv);
+                        messagesLayout.remove(imageDiv);
+                        user.sendDeleteMessage(new Message("delete_message", "text", null, indexMessage, null));
+                    });
                 } else {
                     Div fileDiv = new Div();
                     StreamResource resource = new StreamResource(fileName, () -> new ByteArrayInputStream(fileData));
@@ -69,6 +76,12 @@ public interface RoomClientView {
 
                     messagesLayout.add(fileDiv);
                     messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
+
+                    fileDiv.addClickListener(event -> {
+                        int indexMessage = messagesLayout.indexOf(fileDiv);
+                        messagesLayout.remove(fileDiv);
+                        user.sendDeleteMessage(new Message("delete_message", "text", null, indexMessage, null));
+                    });
                 }
 
                 return true;
@@ -96,7 +109,7 @@ public interface RoomClientView {
         Div messageDiv = new Div();
 
         if (!messageText.isEmpty()) {
-            boolean isSend = user.sendMessage(new Message("message", "text", "text", messageText.getBytes()));
+            boolean isSend = user.sendMessage(new Message("message", "text", "text", 0, messageText.getBytes()));
 
             if (isSend) {
                 messageDiv.setText(messageText);
@@ -108,6 +121,12 @@ public interface RoomClientView {
 
                 messagesLayout.add(messageDiv);
                 messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
+
+                messageDiv.addClickListener(event -> {
+                    int indexMessage = messagesLayout.indexOf(messageDiv);
+                    messagesLayout.remove(messageDiv);
+                    user.sendDeleteMessage(new Message("delete_message", "text", null, indexMessage, null));
+                });
 
                 messageField.clear();
 
@@ -201,6 +220,13 @@ public interface RoomClientView {
                 messagesLayout.add(fileDiv);
                 messagesLayout.getElement().executeJs("this.scrollTo(0, this.scrollHeight);");
             }
+        });
+    }
+
+    default void deleteMessage(UI ui, int index, VerticalLayout messagesLayout) {
+        ui.access(() -> {
+            Component componentToRemove = messagesLayout.getComponentAt(index);
+            messagesLayout.remove(componentToRemove);
         });
     }
 }

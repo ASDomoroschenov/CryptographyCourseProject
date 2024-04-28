@@ -110,6 +110,14 @@ public class RoomClient {
         kafkaWriter.processing(cipherInfo.toBytes(), outputTopic);
     }
 
+    public void sendDeleteMessage(Message message) {
+        kafkaWriter.processing(message.toBytes(), outputTopic);
+    }
+
+    public void deleteMessage(int index) {
+        CompletableFuture.runAsync(() -> userView.deleteMessage(ui, index, messageLayout));
+    }
+
     public BigInteger generatePrivateKey() {
         return new BigInteger(100, random);
     }

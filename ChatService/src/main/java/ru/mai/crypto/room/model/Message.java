@@ -18,6 +18,7 @@ public class Message {
     private String typeMessage;
     private String typeFormat;
     private String fileName;
+    private int indexMessage;
     private byte[] bytes;
 
     public byte[] toBytes() {
