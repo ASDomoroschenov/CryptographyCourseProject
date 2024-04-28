@@ -1,5 +1,6 @@
 package ru.mai.crypto.room.kafka.impl;
 
+import com.typesafe.config.Config;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -13,12 +14,13 @@ import java.util.Map;
 @Slf4j
 @Service
 public class KafkaWriterImpl implements KafkaWriter {
+    private static final Config appConfig = new ConfigReaderImpl().loadConfig();
     private final KafkaProducer<byte[], byte[]> kafkaProducer;
 
     public KafkaWriterImpl() {
         this.kafkaProducer = new KafkaProducer<>(
                 Map.of(
-                        ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9093",
+                        ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, appConfig.getString("kafka.producer.bootstrap.server"),
                         ProducerConfig.CLIENT_ID_CONFIG, "producerKafkaWriter"
                 ),
                 new ByteArraySerializer(),

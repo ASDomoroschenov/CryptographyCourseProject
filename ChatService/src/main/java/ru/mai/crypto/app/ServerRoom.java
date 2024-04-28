@@ -3,13 +3,9 @@ package ru.mai.crypto.app;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
-import ru.mai.crypto.diffie_hellman.DiffieHellman;
-import ru.mai.crypto.room.kafka.KafkaWriter;
-import ru.mai.crypto.room.kafka.impl.KafkaWriterImpl;
 import ru.mai.crypto.room.room_client.RoomClient;
 import ru.mai.crypto.room.view.RoomClientView;
 
-import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -21,9 +17,7 @@ import java.util.concurrent.Executors;
 @Service
 public class ServerRoom {
     private static final ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-    private static final KafkaWriter kafkaWriter = new KafkaWriterImpl();
-    private static final Map<Integer, Pair<RoomClient, RoomClient>> roomUsers = new HashMap<>();
-    private static final Map<Integer, BigInteger[]> roomsParameter = new HashMap<>();
+    private static final Map<Integer, Pair<RoomClient, RoomClient>> roomClients = new HashMap<>();
     private static final Set<String> openWindows = new HashSet<>();
     private final Server server;
 
@@ -32,65 +26,79 @@ public class ServerRoom {
     }
 
     public RoomClient connect(String name, int roomId, RoomClientView userView) {
-        BigInteger[] parameters;
-        RoomClient roomClient;
-        String outputTopic;
-        String inputTopic = topicName(name, roomId);
+        if (canConnect(name, roomId)) {
+            RoomClient roomClient = server.connectToRoom(name, roomId, userView);
+            roomClient.setServerRoom(this);
 
-        if (roomsParameter.containsKey(roomId)) {
-            Pair<RoomClient, RoomClient> users = roomUsers.get(roomId);
-            parameters = roomsParameter.get(roomId);
-            RoomClient anotherRoomClient;
+            if (roomClients.containsKey(roomId)) {
+                Pair<RoomClient, RoomClient> room = roomClients.get(roomId);
+                RoomClient anotherRoomClient = room.getLeft() == null ? room.getRight() : room.getLeft();
 
-            if (users.getLeft() == null) {
-                anotherRoomClient = users.getRight();
+                roomClient.setOutputTopic(anotherRoomClient.getInputTopic());
+                anotherRoomClient.setOutputTopic(roomClient.getInputTopic());
+
+                roomClients.put(roomId, Pair.of(anotherRoomClient, roomClient));
+
+                startRoom(roomClient, anotherRoomClient);
             } else {
-                anotherRoomClient = users.getLeft();
+                roomClients.put(roomId, Pair.of(roomClient, null));
             }
 
-            outputTopic = topicName(anotherRoomClient.getName(), roomId);
-
-            anotherRoomClient.setOutputTopic(topicName(name, roomId));
-
-            log.info("Name input topic {} from roomClient {}", inputTopic, name);
-            log.info("Name output topic {} from roomClient {}", outputTopic, name);
-
-            log.info("Name input topic {} from roomClient {}", anotherRoomClient.getInputTopic(), anotherRoomClient.getName());
-            log.info("Name output topic {} from roomClient {}", anotherRoomClient.getOutputTopic(), anotherRoomClient.getName());
-        } else {
-            parameters = DiffieHellman.generateParameters(300);
-            roomsParameter.put(roomId, parameters);
-
-            outputTopic = null;
+            return roomClient;
         }
 
-        roomClient = new RoomClient(
-                server.getCipherInfo(name),
-                this,
-                roomId,
-                name,
-                outputTopic,
-                inputTopic,
-                kafkaWriter,
-                parameters,
-                userView
-        );
-
-        server.addRoomClient(name, roomClient);
-
-        if (roomUsers.containsKey(roomId)) {
-            RoomClient anotherUser = roomUsers.get(roomId).getLeft();
-            startRoom(anotherUser, roomClient);
-            roomUsers.put(roomId, Pair.of(anotherUser, roomClient));
-        } else {
-            roomUsers.put(roomId, Pair.of(roomClient, null));
-        }
-
-        return roomClient;
+        return null;
     }
 
-    public boolean isOpenWindow(String url) {
-        return openWindows.contains(url);
+    public boolean canConnect(String name, int roomId) {
+        if (roomClients.containsKey(roomId)) {
+            Pair<RoomClient, RoomClient> room = roomClients.get(roomId);
+
+            if (room.getLeft() == null || room.getRight() == null) {
+                if (room.getLeft() != null) {
+                    return !room.getLeft().getName().equals(name);
+                } else {
+                    return !room.getRight().getName().equals(name);
+                }
+            } else {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public void disconnect(String name, int roomId) {
+        Pair<RoomClient, RoomClient> room = roomClients.get(roomId);
+
+        if (room != null) {
+            if (room.getLeft() == null || room.getRight() == null) {
+                roomClients.remove(roomId);
+            } else {
+                if (room.getLeft().getName().equals(name)) {
+                    roomClients.put(roomId, Pair.of(null, room.getRight()));
+                } else {
+                    roomClients.put(roomId, Pair.of(room.getLeft(), null));
+                }
+            }
+        }
+
+        server.disconnectFromRoom(name, roomId);
+    }
+
+    private void startRoom(RoomClient alice, RoomClient bob) {
+        if (!alice.isRunning()) {
+            alice.setRunning(true);
+            service.submit(alice::processing);
+        }
+
+        if (!bob.isRunning()) {
+            bob.setRunning(true);
+            service.submit(bob::processing);
+        }
+
+        alice.sendCipherInfo();
+        bob.sendCipherInfo();
     }
 
     public void addWindow(String url) {
@@ -101,50 +109,7 @@ public class ServerRoom {
         openWindows.remove(url);
     }
 
-    public boolean canConnect(String name, int roomId) {
-        if (roomUsers.containsKey(roomId)) {
-            Pair<RoomClient, RoomClient> users = roomUsers.get(roomId);
-
-            if (users.getLeft() == null || users.getRight() == null) {
-                if (users.getLeft() != null) {
-                    return !users.getLeft().getName().equals(name);
-                } else {
-                    return !users.getRight().getName().equals(name);
-                }
-            } else {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private String topicName(String name, int roomId) {
-        return "input_" + name + "_" + roomId;
-    }
-
-    private void startRoom(RoomClient alice, RoomClient bob) {
-        service.submit(alice::processing);
-        service.submit(bob::processing);
-
-        alice.sendCipherInfo();
-        bob.sendCipherInfo();
-    }
-
-    public void leaveRoom(RoomClient roomClient) {
-        Pair<RoomClient, RoomClient> users = roomUsers.get(roomClient.getRoomId());
-
-        if (users != null) {
-            if (users.getLeft() == null || users.getRight() == null) {
-                roomUsers.remove(roomClient.getRoomId());
-                roomsParameter.remove(roomClient.getRoomId());
-            } else if (users.getLeft() != null && users.getRight() != null) {
-                if (users.getLeft() == roomClient) {
-                    roomUsers.put(roomClient.getRoomId(), Pair.of(null, users.getRight()));
-                } else {
-                    roomUsers.put(roomClient.getRoomId(), Pair.of(users.getLeft(), null));
-                }
-            }
-        }
+    public boolean isNotOpenWindow(String url) {
+        return !openWindows.contains(url);
     }
 }

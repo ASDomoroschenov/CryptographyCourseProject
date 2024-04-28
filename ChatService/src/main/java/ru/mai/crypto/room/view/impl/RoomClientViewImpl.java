@@ -39,7 +39,6 @@ public class RoomClientViewImpl extends VerticalLayout implements HasUrlParamete
     private final TextField messageField;
     private final VerticalLayout messagesLayout;
     private final List<Pair<String, InputStream>> filesData = new ArrayList<>();
-    private final List<Component> messages;
 
     @Override
     public void setParameter(BeforeEvent event, @WildcardParameter String parameter) {
@@ -54,15 +53,13 @@ public class RoomClientViewImpl extends VerticalLayout implements HasUrlParamete
     @Override
     protected void onDetach(DetachEvent detachEvent) {
         serverRoom.removeWindow("room/" + roomClient.getName() + "/" + roomClient.getRoomId());
-        serverRoom.leaveRoom(roomClient);
-        server.leaveRoom(roomClient.getName(), roomClient.getRoomId());
+        serverRoom.disconnect(roomClient.getName(), roomClient.getRoomId());
         super.onDetach(detachEvent);
     }
 
     public RoomClientViewImpl(ServerRoom serverRoom, Server server) {
         this.serverRoom = serverRoom;
         this.server = server;
-        this.messages = new ArrayList<>();
 
         setAlignItems(Alignment.CENTER);
 

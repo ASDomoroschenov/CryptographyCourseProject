@@ -56,7 +56,7 @@ public class ClientView extends VerticalLayout implements HasUrlParameter<String
         UI ui = UI.getCurrent();
 
         if (serverRoom.canConnect(nameClient, Integer.parseInt(roomId))) {
-            if (!serverRoom.isOpenWindow(url)) {
+            if (serverRoom.isNotOpenWindow(url)) {
                 ui.getPage().executeJs("window.open($0, '_blank')", url);
                 serverRoom.addWindow(url);
                 addChatInfoBlock(roomId);
@@ -80,7 +80,7 @@ public class ClientView extends VerticalLayout implements HasUrlParameter<String
         String url = "room/" + nameClient + "/" + roomId;
         Button chatInfoButton = new Button("Комната: " + roomId,
                 e -> {
-            if (!serverRoom.isOpenWindow(url)) {
+            if (serverRoom.isNotOpenWindow(url)) {
                 UI.getCurrent().getPage().executeJs("window.open($0, '_blank')", url);
                 serverRoom.addWindow(url);
             }
@@ -96,7 +96,7 @@ public class ClientView extends VerticalLayout implements HasUrlParameter<String
     private Button getLeaveChatButton(String roomId, HorizontalLayout chatInfoLayout) {
         Button leaveChatButton = new Button("Покинуть", e -> {
             int id = Integer.parseInt(roomId);
-            server.leaveRoom(nameClient, id);
+            serverRoom.disconnect(nameClient, id);
             removeChatInfoBlock(chatInfoLayout);
         });
 

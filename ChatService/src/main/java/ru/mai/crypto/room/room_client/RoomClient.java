@@ -2,17 +2,15 @@ package ru.mai.crypto.room.room_client;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import ru.mai.crypto.app.Server;
 import ru.mai.crypto.app.ServerRoom;
 import ru.mai.crypto.cipher.Cipher;
-import ru.mai.crypto.cipher.cipher_interface.CipherService;
 import ru.mai.crypto.room.kafka.KafkaReader;
 import ru.mai.crypto.room.kafka.KafkaWriter;
-import ru.mai.crypto.room.kafka.impl.KafkaReaderImpl;
-import ru.mai.crypto.room.model.CipherInfoMessage;
 import ru.mai.crypto.room.model.Message;
-import ru.mai.crypto.room.model.parser.CipherInfoParser;
 import ru.mai.crypto.room.view.RoomClientView;
 
 import java.math.BigInteger;
@@ -25,7 +23,9 @@ import java.util.concurrent.Executors;
 
 @Data
 @Slf4j
+@Builder
 public class RoomClient {
+    private static final String received = "received";
     private static final ExecutorService service = Executors.newSingleThreadExecutor();
     private static final Random random = new Random();
     private String name;
@@ -36,37 +36,21 @@ public class RoomClient {
     private RoomClientView userView;
     private BigInteger privateKey;
     private BigInteger publicKey;
-    private volatile byte[] anotherPublicKey = null;
     private volatile Cipher cipher;
     private KafkaReader kafkaReader;
     private VerticalLayout messageLayout;
     private UI ui;
     private ServerRoom serverRoom;
-    private CipherInfoMessage cipherInfo;
     private int roomId;
     private BigInteger modulo;
-    private BigInteger base;
-
-    public RoomClient(CipherInfoMessage cipherInfo, ServerRoom serverRoom, int roomId, String name, String outputTopic, String inputTopic, KafkaWriter kafkaWriter, BigInteger[] parameters, RoomClientView userView) {
-        this.cipherInfo = cipherInfo;
-        this.serverRoom = serverRoom;
-        this.roomId = roomId;
-        this.name = name;
-        this.outputTopic = outputTopic;
-        this.inputTopic = inputTopic;
-        this.kafkaWriter = kafkaWriter;
-        this.parameters = parameters;
-        this.privateKey = generatePrivateKey();
-        this.publicKey = generatePublicKey(this.privateKey);
-        this.userView = userView;
-        this.modulo = parameters[0];
-        this.kafkaReader = new KafkaReaderImpl(this, privateKey, modulo);
-    }
+    private boolean isRunning;
+    private Server server;
 
     public boolean sendMessage(Message message) {
         try {
-            if (anotherPublicKey != null) {
+            if (cipher != null) {
                 kafkaWriter.processing(cipher.encrypt(message.toBytes()), outputTopic);
+                server.saveMessage(name, String.valueOf(roomId), message, "send");
                 return true;
             } else {
                 return false;
@@ -83,31 +67,16 @@ public class RoomClient {
         return false;
     }
 
-    public void setAnotherKey(byte[] anotherPublicKey) {
-        byte[] key = CipherInfoParser.getKey(anotherPublicKey, cipherInfo.getSizeKeyInBits(), privateKey, modulo);
-        byte[] initializationVector = cipherInfo.getInitializationVector();
+    public void setUi(UI ui) {
+        this.ui = ui;
+    }
 
-        CipherService cipherService = CipherInfoParser.getCipherService(
-                cipherInfo.getNameAlgorithm(),
-                key,
-                cipherInfo.getSizeKeyInBits(),
-                cipherInfo.getSizeBlockInBits()
-        );
-
-        cipher = new Cipher(
-                initializationVector,
-                cipherService,
-                CipherInfoParser.getPadding(cipherInfo.getNamePadding()),
-                CipherInfoParser.getEncryptionMode(cipherInfo.getEncryptionMode())
-        );
-
-        this.anotherPublicKey = anotherPublicKey;
+    public void setCipher(byte[] anotherPublicKey) {
+        this.cipher = server.buildCipher(name, anotherPublicKey, privateKey, parameters[0]);
     }
 
     public void sendCipherInfo() {
-        cipherInfo.setPublicKey(publicKey.toByteArray());
-        log.info("Send cipher info to {}", outputTopic);
-        kafkaWriter.processing(cipherInfo.toBytes(), outputTopic);
+        kafkaWriter.processing(server.buildCipherInfoMessage(name, roomId).toBytes(), outputTopic);
     }
 
     public void sendDeleteMessage(Message message) {
@@ -118,24 +87,19 @@ public class RoomClient {
         CompletableFuture.runAsync(() -> userView.deleteMessage(ui, index, messageLayout));
     }
 
-    public BigInteger generatePrivateKey() {
-        return new BigInteger(100, random);
-    }
-
-    public BigInteger generatePublicKey(BigInteger privateKey) {
-        return parameters[1].modPow(privateKey, parameters[0]);
-    }
-
     public void showMessage(Message message) {
         CompletableFuture.runAsync(() -> userView.showMessage(ui, message, messageLayout));
+        server.saveMessage(name, String.valueOf(roomId), message, received);
     }
 
     public void showImage(Message message) {
         CompletableFuture.runAsync(() -> userView.showImage(ui, message, messageLayout));
+        server.saveMessage(name, String.valueOf(roomId), message, received);
     }
 
     public void showFile(Message message) {
         CompletableFuture.runAsync(() -> userView.showFile(ui, message, messageLayout));
+        server.saveMessage(name, String.valueOf(roomId), message, received);
     }
 
     public void processing() {
@@ -143,7 +107,8 @@ public class RoomClient {
     }
 
     public void leaveRoom() {
+        isRunning = false;
         service.submit(() -> kafkaReader.close());
-        serverRoom.leaveRoom(this);
+        serverRoom.disconnect(name, roomId);
     }
 }

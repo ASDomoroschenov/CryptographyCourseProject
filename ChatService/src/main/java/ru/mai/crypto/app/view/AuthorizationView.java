@@ -23,14 +23,14 @@ public class AuthorizationView extends VerticalLayout {
 
         Button loginButton = new Button("Авторизоваться", event -> {
             String username = usernameField.getValue();
+            String nameAlgorithm = encryptionAlgorithmComboBox.getValue();
 
             if (!username.isEmpty()) {
                 if (!username.matches("^[a-zA-Z0-9]+$")) {
                     Notification.show("Ошибка авторизации: имя должно состоять из латинских букв");
                 } else {
-                    if (server.createClient(username)) {
+                    if (server.createClient(username, nameAlgorithm)) {
                         Notification.show("Вы успешно авторизованы");
-                        server.addCipherInfo(username, encryptionAlgorithmComboBox.getValue());
                         UI.getCurrent().navigate(username);
                     } else {
                         Notification.show("Ошибка авторизации: пользователь с таким именем уже существует");

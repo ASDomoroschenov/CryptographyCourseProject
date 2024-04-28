@@ -1,7 +1,7 @@
 package ru.mai.crypto.room.kafka.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.typesafe.config.Config;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -10,21 +10,21 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import ru.mai.crypto.cipher.Cipher;
 import ru.mai.crypto.room.kafka.KafkaReader;
+import ru.mai.crypto.room.model.CipherInfoMessage;
+import ru.mai.crypto.room.model.Message;
 import ru.mai.crypto.room.model.parser.CipherInfoParser;
 import ru.mai.crypto.room.model.parser.MessageParser;
 import ru.mai.crypto.room.room_client.RoomClient;
-import ru.mai.crypto.room.model.CipherInfoMessage;
-import ru.mai.crypto.room.model.Message;
 
 import java.math.BigInteger;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 public class KafkaReaderImpl implements KafkaReader {
+    private static final Config appConfig = new ConfigReaderImpl().loadConfig();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private final KafkaConsumer<byte[], byte[]> kafkaConsumer;
     private final BigInteger privateKey;
@@ -36,9 +36,9 @@ public class KafkaReaderImpl implements KafkaReader {
         this.roomClient = roomClient;
         this.kafkaConsumer = new KafkaConsumer<>(
                 Map.of(
-                        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9093",
+                        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, appConfig.getString("kafka.consumer.bootstrap.server"),
                         ConsumerConfig.GROUP_ID_CONFIG, "group_" + roomClient.getName() + "_" + roomClient.getRoomId(),
-                        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
+                        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, appConfig.getString("kafka.consumer.auto.offset.reset")
                 ),
                 new ByteArrayDeserializer(),
                 new ByteArrayDeserializer()
@@ -62,29 +62,22 @@ public class KafkaReaderImpl implements KafkaReader {
                     if (jsonMessage.contains("cipherInfo")) {
                         CipherInfoMessage cipherInfo = OBJECT_MAPPER.readValue(jsonMessage, CipherInfoMessage.class);
                         cipher = CipherInfoParser.parseCipherInfoMessage(jsonMessage, privateKey, modulo);
-                        log.info("Get cipher info to {}", roomClient.getName());
-                        roomClient.setAnotherKey(cipherInfo.getPublicKey());
-                        log.info(cipherInfo.toString());
-                    } else if (jsonMessage.contains("exit")) {
-                        isRunning = false;
+                        roomClient.setCipher(cipherInfo.getPublicKey());
+                        log.info("client {} get cipher info", roomClient.getName());
                     } else if (jsonMessage.contains("delete_message")) {
                         Message deleteMessage = OBJECT_MAPPER.readValue(jsonMessage, Message.class);
                         roomClient.deleteMessage(deleteMessage.getIndexMessage());
-                        log.info("delete message");
                     } else {
                         if (cipher != null) {
                             Message message = MessageParser.parseMessage(new String(cipher.decrypt(consumerRecord.value())));
 
                             if (message != null && message.getBytes() != null) {
                                 if (message.getTypeFormat().equals("text")) {
-                                    CompletableFuture.runAsync(() -> roomClient.showMessage(message));
-                                    log.info("roomClient {} get message: {}", roomClient.getName(), new String(message.getBytes()));
+                                    roomClient.showMessage(message);
                                 } else if (message.getTypeFormat().equals("image")) {
-                                    log.info("roomClient {} get image", roomClient.getName());
-                                    CompletableFuture.runAsync(() -> roomClient.showImage(message));
+                                    roomClient.showImage(message);
                                 } else {
-                                    log.info("roomClient {} get file", roomClient.getName());
-                                    CompletableFuture.runAsync(() -> roomClient.showFile(message));
+                                    roomClient.showFile(message);
                                 }
                             }
                         }
