@@ -50,6 +50,13 @@ public class Server {
         clients.put(name, new ArrayList<>());
         jedisPooled.set(name, "");
 
+        try {
+            log.info(OBJECT_MAPPER.writeValueAsString(serverClients.get(name)));
+        } catch (JsonProcessingException ex) {
+            log.error(ex.getMessage());
+            log.error(Arrays.deepToString(ex.getStackTrace()));
+        }
+
         return true;
     }
 
