@@ -1,4 +1,4 @@
-package ru.mai.javachatservice.model;
+package ru.mai.javachatservice.model.client;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

@@ -1,4 +1,4 @@
-package ru.mai.javachatservice.model;
+package ru.mai.javachatservice.model.client;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Client {
+public class ClientInfo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;

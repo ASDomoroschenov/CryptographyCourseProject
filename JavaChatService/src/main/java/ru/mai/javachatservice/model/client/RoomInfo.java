@@ -1,4 +1,4 @@
-package ru.mai.javachatservice.model;
+package ru.mai.javachatservice.model.client;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Room {
+public class RoomInfo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;

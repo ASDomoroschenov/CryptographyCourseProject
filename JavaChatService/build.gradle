@@ -27,6 +27,19 @@ ext {
 }
 
 dependencies {
+    // configuration
+    implementation 'com.typesafe:config:1.4.2'
+
+    // json
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.16.1'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
+
+    // redis
+    implementation 'redis.clients:jedis:4.3.1'
+
+    // kafka
+    implementation 'org.apache.kafka:kafka-clients:3.4.0'
+
     // apache-commons
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
     implementation 'commons-io:commons-io:2.16.1'
