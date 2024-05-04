@@ -1,0 +1,11 @@
+spring:
+    application:
+        name: TestKafka
+    kafka:
+        bootstrap-servers: localhost:9093
+        producer:
+            value-serializer: org.apache.kafka.common.serialization.StringSerializer
+        consumer:
+            value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+            group-id: test
+            auto-offset-reset: earliest
