@@ -39,6 +39,6 @@ public class Message {
             log.error("Error while processing message to json bytes");
         }
 
-        return null;
+        return "";
     }
 }

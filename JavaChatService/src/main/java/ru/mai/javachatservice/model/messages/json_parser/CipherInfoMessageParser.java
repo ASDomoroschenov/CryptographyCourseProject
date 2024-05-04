@@ -1,6 +1,5 @@
 package ru.mai.javachatservice.model.messages.json_parser;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import ru.mai.javachatservice.cipher.Cipher;
@@ -15,19 +14,8 @@ import java.util.Arrays;
 @Slf4j
 public class CipherInfoMessageParser {
     private static final String UNEXPECTED_VALUE = "Unexpected value: ";
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private CipherInfoMessageParser() {}
-
-    public static Cipher parseCipherInfoMessage(String message, BigInteger privateKey, BigInteger modulo) {
-        try {
-            return getCipher(OBJECT_MAPPER.readValue(message, CipherInfoMessage.class), privateKey, modulo);
-        } catch (JsonProcessingException ex) {
-            log.error("Error while parsing json string");
-            log.error(Arrays.deepToString(ex.getStackTrace()));
-        }
-
-        return null;
+    private CipherInfoMessageParser() {
     }
 
     public static Cipher getCipher(CipherInfoMessage cipherInfo, BigInteger privateKey, BigInteger modulo) {

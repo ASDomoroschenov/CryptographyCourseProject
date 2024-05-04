@@ -50,4 +50,15 @@ public class CipherInfoMessage {
 
         return new byte[0];
     }
+
+    @Override
+    public String toString() {
+        try {
+            return mapper.writeValueAsString(this);
+        } catch (JsonProcessingException ex) {
+            log.error("Error while processing message to json bytes");
+        }
+
+        return "";
+    }
 }
