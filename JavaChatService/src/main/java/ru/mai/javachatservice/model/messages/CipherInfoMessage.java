@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import ru.mai.javachatservice.model.client.CipherInfo;
+import ru.mai.javachatservice.model.client.RoomInfo;
 
 @Data
 @Slf4j
@@ -15,7 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 @NoArgsConstructor
 public class CipherInfoMessage {
     private static final ObjectMapper mapper = new ObjectMapper();
-    private String typeMessage;
+    private String typeMessage = "cipher_info";
+    private long anotherClientId;
     private String nameAlgorithm;
     private String namePadding;
     private String encryptionMode;
@@ -23,6 +26,20 @@ public class CipherInfoMessage {
     private int sizeBlockInBits;
     private byte[] initializationVector;
     private byte[] publicKey;
+    private byte[] p;
+    private byte[] g;
+
+    public CipherInfoMessage(long anotherClientId, CipherInfo cipherInfo, RoomInfo roomInfo) {
+        this.anotherClientId = anotherClientId;
+        this.nameAlgorithm = cipherInfo.getNameAlgorithm();
+        this.namePadding = cipherInfo.getNamePadding();
+        this.encryptionMode = cipherInfo.getEncryptionMode();
+        this.sizeKeyInBits = cipherInfo.getSizeKeyInBits();
+        this.sizeBlockInBits = cipherInfo.getSizeBlockInBits();
+        this.initializationVector = cipherInfo.getInitializationVector();
+        this.p = roomInfo.getP();
+        this.g = roomInfo.getG();
+    }
 
     public byte[] toBytes() {
         try {

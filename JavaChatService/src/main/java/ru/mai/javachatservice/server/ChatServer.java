@@ -1,69 +1,181 @@
 package ru.mai.javachatservice.server;
 
+import com.vaadin.flow.component.UI;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
 import ru.mai.javachatservice.cipher.diffie_hellman.DiffieHellman;
+import ru.mai.javachatservice.kafka.KafkaWriter;
 import ru.mai.javachatservice.model.client.CipherInfo;
 import ru.mai.javachatservice.model.client.ClientInfo;
 import ru.mai.javachatservice.model.client.RoomInfo;
+import ru.mai.javachatservice.model.messages.CipherInfoMessage;
 import ru.mai.javachatservice.repository.CipherInfoRepository;
 import ru.mai.javachatservice.repository.ClientRepository;
 import ru.mai.javachatservice.repository.RoomRepository;
 
 import java.math.BigInteger;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
 
+@Slf4j
 @Service
 public class ChatServer {
     private static final Random RANDOM = new Random();
-    private static final Set<String> openTabs = new HashSet<>();
+    private static final Map<String, UI> openWindows = new HashMap<>();
+    private static final Map<Long, Pair<Long, Long>> roomConnections = new HashMap<>();
     private final CipherInfoRepository cipherInfoRepository;
     private final ClientRepository clientRepository;
     private final RoomRepository roomRepository;
+    private final KafkaWriter kafkaWriter;
 
-    public ChatServer(CipherInfoRepository cipherInfoRepository, ClientRepository clientRepository, RoomRepository roomRepository) {
+    public ChatServer(CipherInfoRepository cipherInfoRepository, ClientRepository clientRepository, RoomRepository roomRepository, KafkaWriter kafkaWriter) {
         this.cipherInfoRepository = cipherInfoRepository;
         this.clientRepository = clientRepository;
         this.roomRepository = roomRepository;
+        this.kafkaWriter = kafkaWriter;
     }
 
-    public ClientInfo authorization(String name, String nameAlgorithm) {
-        CipherInfo cipherInfo = getCipherInfo(nameAlgorithm);
-        return getNewClient(name, cipherInfoRepository.save(cipherInfo));
-    }
-
-    public ClientInfo getClient(long clientId) {
-        return clientRepository.findById(clientId).orElse(null);
-    }
-
-    public void addTab(String url) {
-        openTabs.add(url);
-    }
-
-    public void removeTab(String url) {
-        openTabs.remove(url);
-    }
-
-    public boolean isNotOpenTab(String url) {
-        return !openTabs.contains(url);
-    }
-
-    private RoomInfo getNewRoom(long roomId) {
-        BigInteger[] roomParams = DiffieHellman.generateParameters(300);
-        RoomInfo room = RoomInfo.builder()
-                .id(roomId)
-                .p(roomParams[0].toByteArray())
-                .g(roomParams[1].toByteArray())
-                .build();
-        return roomRepository.save(room);
-    }
-
-    private ClientInfo getNewClient(String name, CipherInfo cipherInfo) {
+    public synchronized ClientInfo authorization(String name, String nameAlgorithm) {
+        CipherInfo cipherInfo = cipherInfoRepository.save(getCipherInfo(nameAlgorithm));
         return clientRepository.save(ClientInfo.builder()
                 .name(name)
                 .idCipherInfo(cipherInfo.getId())
                 .rooms(new long[0])
                 .build()
         );
+    }
+
+    public synchronized boolean connectToRoom(long clientId, long roomId) {
+        Optional<ClientInfo> clientInfoOptional = clientRepository.findById(clientId);
+
+        if (clientInfoOptional.isPresent()) {
+            if (roomConnections.containsKey(roomId)) {
+                Pair<Long, Long> room = roomConnections.get(roomId);
+
+                if ((room.getLeft() == null || room.getRight() == null) &&
+                    !((room.getLeft() != null && room.getLeft() == clientId) || (room.getRight() != null && room.getRight() == clientId))) {
+                    Long anotherClientId = room.getLeft() == null ? room.getRight() : room.getLeft();
+                    roomConnections.put(roomId, Pair.of(clientId, anotherClientId));
+
+                    ClientInfo updateClient = clientRepository.addRoom(clientId, roomId);
+
+                    if (updateClient == null) {
+                        return false;
+                    }
+
+                    return startRoom(clientId, anotherClientId, roomId);
+                }
+
+                return false;
+            } else {
+                if (!roomRepository.existsRoomInfoByRoomId(roomId)) {
+                    BigInteger[] roomParameters = DiffieHellman.generateParameters(300);
+
+                    byte[] p = roomParameters[0].toByteArray();
+                    byte[] g = roomParameters[1].toByteArray();
+
+                    roomRepository.save(
+                            RoomInfo.builder()
+                                    .roomId(roomId)
+                                    .p(p)
+                                    .g(g)
+                                    .build()
+                    );
+                }
+
+                roomConnections.put(roomId, Pair.of(clientId, null));
+                clientRepository.addRoom(clientId, roomId);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public synchronized void disconnectFromRoom(long clientId, long roomId) {
+        if (roomConnections.containsKey(roomId)) {
+            log.info("trying to disconnect");
+            Pair<Long, Long> room = roomConnections.get(roomId);
+
+            if (room.getLeft() != null && room.getLeft() == clientId) {
+                roomConnections.put(roomId, Pair.of(null, room.getRight()));
+            } else if (room.getRight() != null && room.getRight() == clientId) {
+                roomConnections.put(roomId, Pair.of(room.getLeft(), null));
+            } else {
+                return;
+            }
+
+            Pair<Long, Long> updatedRoom = roomConnections.get(roomId);
+
+            if (updatedRoom.getLeft() == null && updatedRoom.getRight() == null) {
+                log.info("remove roomId");
+                roomConnections.remove(roomId);
+            }
+
+            String url = "room/" + clientId + "/" + roomId;
+
+            UI ui = openWindows.get(url);
+
+            if (ui != null) {
+                ui.getPage().executeJs("window.close()");
+                removeWindow(url);
+            }
+
+            clientRepository.removeRoom(clientId, roomId);
+        }
+    }
+
+    private boolean startRoom(long firstClientId, long secondClientId, long roomId) {
+        log.info("Start room...");
+        CipherInfo firstCipherInfo = getCipherInfoById(firstClientId);
+        CipherInfo secondCipherInfo = getCipherInfoById(secondClientId);
+        RoomInfo roomInfo = getRoomInfoById(roomId);
+
+        String outputTopicFirst = "input_" + secondClientId + "_" + roomId;
+        String outputTopicSecond = "input_" + firstClientId + "_" + roomId;
+
+        if (firstCipherInfo != null && secondCipherInfo != null && roomInfo != null) {
+            CipherInfoMessage firstMessage = new CipherInfoMessage(firstClientId, firstCipherInfo, roomInfo);
+            CipherInfoMessage secondMessage = new CipherInfoMessage(secondClientId, secondCipherInfo, roomInfo);
+
+            kafkaWriter.processing(firstMessage.toBytes(), outputTopicFirst);
+            kafkaWriter.processing(secondMessage.toBytes(), outputTopicSecond);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public CipherInfoMessage getCipherInfoMessageClient(long clientId, long roomId) {
+        CipherInfo cipherInfo = getCipherInfoById(clientId);
+        RoomInfo roomInfo = getRoomInfoById(roomId);
+
+        if (cipherInfo != null && roomInfo != null) {
+            return new CipherInfoMessage(clientId, cipherInfo, roomInfo);
+        }
+
+        return null;
+    }
+
+    public CipherInfo getCipherInfoById(long clientId) {
+        Optional<ClientInfo> clientInfoOptional = clientRepository.findById(clientId);
+
+        if (clientInfoOptional.isPresent()) {
+            ClientInfo clientInfo = clientInfoOptional.get();
+
+            return cipherInfoRepository.findById(clientInfo.getIdCipherInfo()).orElse(null);
+        }
+
+        return null;
+    }
+
+    public RoomInfo getRoomInfoById(long roomId) {
+        return roomRepository.getRoomInfoByRoomId(roomId).orElse(null);
     }
 
     private CipherInfo getCipherInfo(String nameAlgorithm) {
@@ -92,9 +204,21 @@ public class ChatServer {
         byte[] vector = new byte[size];
 
         for (int i = 0; i < size; i++) {
-            vector[i] = (byte) RANDOM.nextInt(127);
+            vector[i] = (byte) RANDOM.nextInt(128);
         }
 
         return vector;
+    }
+
+    public synchronized void addWindow(String url, UI ui) {
+        openWindows.put(url, ui);
+    }
+
+    public synchronized void removeWindow(String url) {
+        openWindows.remove(url);
+    }
+
+    public synchronized boolean isNotOpenWindow(String url) {
+        return !openWindows.containsKey(url);
     }
 }

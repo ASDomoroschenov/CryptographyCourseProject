@@ -34,6 +34,8 @@ public class CipherInfoMessageParser {
         byte[] key = getKey(cipherInfo.getPublicKey(), cipherInfo.getSizeKeyInBits(), privateKey, modulo);
         byte[] initializationVector = cipherInfo.getInitializationVector();
 
+        log.info(Arrays.toString(key));
+
         CipherService cipherService = getCipherService(
                 cipherInfo.getNameAlgorithm(),
                 key,
