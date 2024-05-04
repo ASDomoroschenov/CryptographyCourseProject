@@ -60,6 +60,7 @@ public class RoomView extends VerticalLayout implements HasUrlParameter<String> 
     private volatile Cipher cipherEncrypt;
     private final ExecutorService service = Executors.newSingleThreadExecutor();
     private MessagesLayoutWrapper messagesLayoutWrapper;
+    private long anotherClientId;
     private final Backend backend;
 
     @Override
@@ -306,8 +307,10 @@ public class RoomView extends VerticalLayout implements HasUrlParameter<String> 
                     for (Pair<String, InputStream> file : filesData) {
                         byte[] bytesFile = readBytesFromInputStream(file.getRight());
                         String format = getTypeFormat(file.getLeft());
-                        byte[] message = new Message(TYPE_MESSAGE, format, file.getLeft(), 0, bytesFile).toBytes();
-                        kafkaWriter.processing(cipherEncrypt.encrypt(message), outputTopic);
+                        Message message = new Message(TYPE_MESSAGE, format, file.getLeft(), 0, bytesFile);
+                        byte[] messageBytes = message.toBytes();
+                        kafkaWriter.processing(cipherEncrypt.encrypt(messageBytes), outputTopic);
+                        server.saveMessage(clientId, anotherClientId, message);
 
                         if (format.equals("image")) {
                             messagesLayoutWrapper.showImageMessage(file.getLeft(), bytesFile, MessagesLayoutWrapper.Destination.OWN);
@@ -322,8 +325,10 @@ public class RoomView extends VerticalLayout implements HasUrlParameter<String> 
                     String textMessage = messageField.getValue();
 
                     if (!textMessage.isEmpty()) {
-                        byte[] message = new Message(TYPE_MESSAGE, "text", "text", 0, textMessage.getBytes()).toBytes();
-                        kafkaWriter.processing(cipherEncrypt.encrypt(message), outputTopic);
+                        Message message = new Message(TYPE_MESSAGE, "text", "text", 0, textMessage.getBytes());
+                        byte[] messageBytes = message.toBytes();
+                        kafkaWriter.processing(cipherEncrypt.encrypt(messageBytes), outputTopic);
+                        server.saveMessage(clientId, anotherClientId, message);
                         messagesLayoutWrapper.showTextMessage(textMessage, MessagesLayoutWrapper.Destination.OWN);
                     }
 
@@ -349,6 +354,7 @@ public class RoomView extends VerticalLayout implements HasUrlParameter<String> 
 
             VerticalLayout verticalLayout = new VerticalLayout(horizontalLayout);
             verticalLayout.setWidth("700px");
+
             verticalLayout.setAlignItems(Alignment.CENTER);
             verticalLayout.setJustifyContentMode(JustifyContentMode.CENTER);
             verticalLayout.getStyle().set("position", "relative");
@@ -470,6 +476,7 @@ public class RoomView extends VerticalLayout implements HasUrlParameter<String> 
                             outputTopic = "input_" + cipherInfoAnotherClient.getAnotherClientId() + "_" + roomId;
                             privateKey = generatePrivateKey();
                             p = cipherInfoAnotherClient.getP();
+                            anotherClientId = cipherInfoAnotherClient.getAnotherClientId();
                             byte[] publicKey = generatePublicKey(privateKey, p, cipherInfoAnotherClient.getG());
 
                             log.info("Client {} get cipher info", clientId);
@@ -510,6 +517,8 @@ public class RoomView extends VerticalLayout implements HasUrlParameter<String> 
 
                             if (message != null && message.getBytes() != null) {
                                 log.info("Client {} get message", clientId);
+
+                                server.saveMessage(anotherClientId, clientId, message);
 
                                 if (message.getTypeFormat().equals("text")) {
                                     messagesLayoutWrapper.showTextMessage(new String(message.getBytes()), MessagesLayoutWrapper.Destination.ANOTHER);

@@ -8,10 +8,13 @@ import ru.mai.javachatservice.cipher.diffie_hellman.DiffieHellman;
 import ru.mai.javachatservice.kafka.KafkaWriter;
 import ru.mai.javachatservice.model.client.CipherInfo;
 import ru.mai.javachatservice.model.client.ClientInfo;
+import ru.mai.javachatservice.model.client.MessageInfo;
 import ru.mai.javachatservice.model.client.RoomInfo;
 import ru.mai.javachatservice.model.messages.CipherInfoMessage;
+import ru.mai.javachatservice.model.messages.Message;
 import ru.mai.javachatservice.repository.CipherInfoRepository;
 import ru.mai.javachatservice.repository.ClientRepository;
+import ru.mai.javachatservice.repository.MessageInfoRepository;
 import ru.mai.javachatservice.repository.RoomRepository;
 
 import java.math.BigInteger;
@@ -30,8 +33,10 @@ public class ChatServer {
     private final ClientRepository clientRepository;
     private final RoomRepository roomRepository;
     private final KafkaWriter kafkaWriter;
+    private final MessageInfoRepository messageInfoRepository;
 
-    public ChatServer(CipherInfoRepository cipherInfoRepository, ClientRepository clientRepository, RoomRepository roomRepository, KafkaWriter kafkaWriter) {
+    public ChatServer(MessageInfoRepository messageInfoRepository, CipherInfoRepository cipherInfoRepository, ClientRepository clientRepository, RoomRepository roomRepository, KafkaWriter kafkaWriter) {
+        this.messageInfoRepository = messageInfoRepository;
         this.cipherInfoRepository = cipherInfoRepository;
         this.clientRepository = clientRepository;
         this.roomRepository = roomRepository;
@@ -56,7 +61,7 @@ public class ChatServer {
                 Pair<Long, Long> room = roomConnections.get(roomId);
 
                 if ((room.getLeft() == null || room.getRight() == null) &&
-                    !((room.getLeft() != null && room.getLeft() == clientId) || (room.getRight() != null && room.getRight() == clientId))) {
+                        !((room.getLeft() != null && room.getLeft() == clientId) || (room.getRight() != null && room.getRight() == clientId))) {
                     Long anotherClientId = room.getLeft() == null ? room.getRight() : room.getLeft();
                     roomConnections.put(roomId, Pair.of(clientId, anotherClientId));
 
@@ -149,6 +154,14 @@ public class ChatServer {
         }
 
         return false;
+    }
+
+    public void saveMessage(long from, long to, Message message) {
+        messageInfoRepository.save(MessageInfo.builder()
+                .from(from)
+                .to(to)
+                .message(message)
+                .build());
     }
 
     public CipherInfoMessage getCipherInfoMessageClient(long clientId, long roomId) {
