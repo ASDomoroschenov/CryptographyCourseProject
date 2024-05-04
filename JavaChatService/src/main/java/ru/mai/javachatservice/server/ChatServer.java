@@ -156,6 +156,10 @@ public class ChatServer {
         return false;
     }
 
+    public boolean notExistClient(long clientId) {
+        return !clientRepository.existsById(clientId);
+    }
+
     public void saveMessage(long from, long to, Message message) {
         messageInfoRepository.save(MessageInfo.builder()
                 .from(from)

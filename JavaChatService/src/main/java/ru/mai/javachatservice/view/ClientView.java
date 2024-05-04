@@ -22,6 +22,11 @@ public class ClientView extends VerticalLayout implements HasUrlParameter<String
     @Override
     public void setParameter(BeforeEvent event, String parameter) {
         this.clientId = Long.parseLong(parameter);
+
+        if (server.notExistClient(clientId)) {
+            Notification.show("Пользователь не найден");
+            setEnabled(false);
+        }
     }
 
     public ClientView(ChatServer server) {

@@ -72,8 +72,13 @@ public class RoomView extends VerticalLayout implements HasUrlParameter<String> 
         clientId = Long.parseLong(params[0]);
         roomId = Long.parseLong(params[1]);
 
-        service.submit(backend::startKafka);
-        server.addWindow("room/" + clientId + "/" + roomId, event.getUI());
+        if (server.notExistClient(clientId)) {
+            Notification.show("Пользователь не найден");
+            setEnabled(false);
+        } else {
+            service.submit(backend::startKafka);
+            server.addWindow("room/" + clientId + "/" + roomId, event.getUI());
+        }
     }
 
     public RoomView(ChatServer server, KafkaWriter kafkaWriter) {
