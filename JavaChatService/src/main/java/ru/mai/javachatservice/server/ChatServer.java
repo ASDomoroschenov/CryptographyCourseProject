@@ -160,7 +160,7 @@ public class ChatServer {
         return !clientRepository.existsById(clientId);
     }
 
-    public void saveMessage(long from, long to, Message message) {
+    public synchronized void saveMessage(long from, long to, Message message) {
         messageInfoRepository.save(MessageInfo.builder()
                 .from(from)
                 .to(to)
