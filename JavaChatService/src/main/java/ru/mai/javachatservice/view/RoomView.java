@@ -513,6 +513,7 @@ public class RoomView extends VerticalLayout implements HasUrlParameter<String> 
                                 publicKeyAnother = keyMessage.getPublicKey();
                             }
                         } else if (jsonMessage.contains("delete_message")) {
+                            log.info("get disconnect message");
                             Message deleteMessage = OBJECT_MAPPER.readValue(jsonMessage, Message.class);
                             messagesLayoutWrapper.deleteMessage(deleteMessage.getIndexMessage());
                         } else if (jsonMessage.contains("disconnect")) {
