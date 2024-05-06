@@ -445,9 +445,11 @@ public class RoomView extends VerticalLayout implements HasUrlParameter<String> 
     }
 
     public class Backend {
-        private volatile Cipher cipherDecrypt;
+        private static final String bootstrapServer = "localhost:9093";
+        private static final String autoOffsetReset = "earliest";
         private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
         private static final Random RANDOM = new Random();
+        private volatile Cipher cipherDecrypt;
         private volatile boolean isRunning = true;
         private CipherInfoMessage cipherInfoAnotherClient;
         private byte[] privateKey;
@@ -459,9 +461,9 @@ public class RoomView extends VerticalLayout implements HasUrlParameter<String> 
 
             KafkaConsumer<byte[], byte[]> kafkaConsumer = new KafkaConsumer<>(
                     Map.of(
-                            ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9093",
+                            ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer,
                             ConsumerConfig.GROUP_ID_CONFIG, "group_" + clientId + "_" + roomId,
-                            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
+                            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset
                     ),
                     new ByteArrayDeserializer(),
                     new ByteArrayDeserializer()
